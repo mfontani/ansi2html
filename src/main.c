@@ -429,11 +429,9 @@ int main(int argc, char *argv[])
                     exit(1);
                 }
             }
-            set_ansi_style_properties(
-                PALETTE_WIN10_CONSOLE, &style, sgrs, sgrs_len
-            );
+            set_ansi_style_properties(palette, &style, sgrs, sgrs_len);
             printf("</span><span style=\"");
-            ansi_style_span_style(&style, PALETTE_WIN10_CONSOLE);
+            ansi_style_span_style(&style, palette);
             printf("\">");
             break;
         case '&':
