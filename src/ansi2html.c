@@ -633,23 +633,23 @@ void set_ansi_style_properties(
                     }
                     // Error?
                 }
-                else if (sgr[i + 2] == 2) // 48;2;R;G;B
+                else if (sgr[i + 1] == 2) // 48;2;R;G;B
                 {
-                    if (i + 5 < len)
+                    if (i + 4 < len)
                     {
                         bg->color_type = COLOR_TYPE_24BIT;
                         bg->fg_or_bg = ANSI_BG;
                         bg->is_base_color = false;
-                        bg->rgb.red = sgr[i + 3];
-                        bg->rgb.green = sgr[i + 4];
-                        bg->rgb.blue = sgr[i + 5];
+                        bg->rgb.red = sgr[i + 2];
+                        bg->rgb.green = sgr[i + 3];
+                        bg->rgb.blue = sgr[i + 4];
                         DEBUG(
                             "%d;2;%d;%d;%d -> Background color 24-bit -> bg "
                             "RGB %02X%02X%02X\n",
-                            sgr[i], sgr[i + 3], sgr[i + 4], sgr[i + 5],
+                            sgr[i], sgr[i + 2], sgr[i + 3], sgr[i + 4],
                             bg->rgb.red, bg->rgb.green, bg->rgb.blue
                         );
-                        i += 5;
+                        i += 4;
                         break;
                     }
                     // Error?
