@@ -1,0 +1,71 @@
+---
+name: Release
+"on":
+  push:
+    tags:
+      - '*'
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    container: debian:bookworm
+    steps:
+      - uses: actions/checkout@v4
+      - name: install prerequisites
+        timeout-minutes: 10
+        run: |
+          apt-get -qq update
+          apt-get -qq install -y build-essential xz-utils
+      - name: attempt static compilation w/o asan
+        timeout-minutes: 2
+        run: |
+          make clean
+          NO_ASAN=1 make CC=gcc -B ansi2html-static
+          mv ansi2html-static ansi2html
+      - name: test minimal conversion
+        timeout-minutes: 1
+        run: |
+          printf '\e[0;31mred\e[0;1;31mbold red\e[0m' | ./ansi2html -p vga
+          echo
+          printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html -b -p vga
+          echo
+      - run: xz --compress --stdout ansi2html > ansi2html.xz
+      - uses: actions/upload-artifact@master
+        with:
+          name: ansi2html.xz
+          path: ansi2html.xz
+
+  release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url}}
+    steps:
+      - id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+
+  upload:
+    needs: [release]
+    strategy:
+      matrix:
+        file: ['ansi2html.xz']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@master
+        with:
+          name: ${{ matrix.file }}
+          path: .
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./${{ matrix.file }}
+          asset_name: ${{ matrix.file }}
+          asset_content_type: application/x-xz

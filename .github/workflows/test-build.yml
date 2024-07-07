@@ -1,0 +1,42 @@
+name: "Compilation test"
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: debian:bookworm
+    steps:
+      - uses: actions/checkout@v4
+      - name: install prerequisites
+        timeout-minutes: 10
+        run: |
+          apt-get -qq update
+          apt-get -qq install -y build-essential
+      - name: attempt compilation w/o asan
+        timeout-minutes: 2
+        run: |
+          NO_ASAN=1 make CC=gcc -B ansi2html
+      - name: attempt compilation with asan
+        timeout-minutes: 2
+        run: |
+          make clean
+          make CC=gcc -B ansi2html
+      - name: attempt static compilation w/o asan
+        timeout-minutes: 2
+        run: |
+          make clean
+          NO_ASAN=1 make CC=gcc -B ansi2html-static
+      - name: test minimal conversion
+        timeout-minutes: 1
+        run: |
+          printf '\e[0;31mred\e[0;1;31mbold red\e[0m' | ./ansi2html-static -p vga
+          echo
+          printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html-static -b -p vga
+          echo

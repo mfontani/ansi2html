@@ -1,0 +1,6 @@
+ansi2html
+tags
+.ccls-cache/
+.cache/
+compile_commands.json
+reports/
