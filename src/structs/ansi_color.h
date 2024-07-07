@@ -4,6 +4,7 @@
 #include "ansi_color_type.h"
 #include "ansi_fg_or_bg.h"
 #include "ansi_rgb.h"
+#include <stdbool.h>
 
 struct ansi_color
 {
@@ -13,6 +14,10 @@ struct ansi_color
     struct ansi_fg_or_bg *fg_or_bg;
     // The RGB of this color:
     struct ansi_rgb rgb;
+    // Whether the color was one of the lower 16 (useful for "bold is bright")
+    bool is_base_color;
+    // If it was a base color, which one?
+    unsigned char base_color;
 };
 
 #endif // ANSI_COLOR_H

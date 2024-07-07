@@ -88,3 +88,10 @@ ansi2html-static: Makefile $(C_FILES) $(H_FILES)
 	$(CC) -static $(C_FLAGS) $(L_FLAGS) $(ADD_L_FLAGS) -o $@ $(C_FILES)
 	@end=$$(perl -MTime::HiRes=gettimeofday -E'say scalar gettimeofday')
 	@perl -E'say sprintf "Build  time: %.4f seconds", $$ARGV[1] - $$ARGV[0]' "$$start" "$$end"
+
+.PHONY: run-tests
+run-tests:
+	@for f in tests/*.sh; do
+		echo "Running $$f"
+		./$$f
+	done
