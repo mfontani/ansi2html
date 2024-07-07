@@ -7,7 +7,7 @@
     "Usage: %s [options]\n"                                                    \
     "Options:\n"                                                               \
     "  --help                   Show this help.\n"                             \
-    "  --palette, -p <name>     Use the named palette.\n"                      \
+    "  --palette, -p <name>     Use the named palette. Default is vga.\n"      \
     "  --rgb-for <0-16>         Show the #RRGGBB for the given palette.\n"     \
     "                           Only usable after a valid --palette.\n"        \
     "  --bold-is-bright, -b     A bold color is a bright color.\n"             \
@@ -48,8 +48,8 @@ int main(int argc, char *argv[])
 
     // We start with a "reset" style:
     struct ansi_style style = {0};
-    // Need to provide a known palette.
-    struct ansi_color_palette *palette = NULL;
+    // Need to provide a known palette. This is the default:
+    struct ansi_color_palette *palette = PALETTE_VGA;
 
     // Want this wrapped in a "pre" block?
     bool wrap_in_pre = false;
