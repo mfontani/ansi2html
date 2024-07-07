@@ -10,7 +10,7 @@ ansi2html --palette vga < input.txt > output.html
 
 See `ansi2html --help` for more options.
 
-You can choose a number of different palettes, which have to be given as a required parameter to the program. List them with `ansi2html --palette`.
+You can choose a number of different palettes, which can be given as a parameter to the program. List the available ones with `ansi2html --palette`.
 
 You can optionally enable the "bold is bright" feature with `--bold-is-bright`, which will make bold text (i.e. for `\e[0;1;31m` appear as bright (i.e. `\e[0;91m`) text. This is disabled by default.
 

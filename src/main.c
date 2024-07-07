@@ -9,7 +9,6 @@
     "  --help                   Show this help.\n"                             \
     "  --palette, -p <name>     Use the named palette. Default is vga.\n"      \
     "  --rgb-for <0-16>         Show the #RRGGBB for the given palette.\n"     \
-    "                           Only usable after a valid --palette.\n"        \
     "  --bold-is-bright, -b     A bold color is a bright color.\n"             \
     "  --pre                    Wrap the output in a <pre> block, using the\n" \
     "                           default foreground and background colors.\n"   \
