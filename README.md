@@ -25,17 +25,17 @@ You can use the `--palette NAME --rgb-for 0-16` option to show the RGB color for
 You can likely get away with something like this, until I get automations working:
 
 ```bash
-NO_ASAN=1 make CC=gcc ansi2html
-NO_ASAN=1 make CC=clang ansi2html
+env NO_ASAN=1 make ansi2html
+env NO_ASAN=1 make CC=clang ansi2html
 ```
 
 ## How to compile (developer)
 
-Assuming you've `gcc-14` installed, just run `make`. It'll:
+Run `make CC=gcc-14 all`. It'll:
 
 - format the code (you'll need `clang-format` installed)
 - create the tags file (you'll need `ctags` installed)
-- compile the program with `gcc-14`
+- compile the program with `gcc-14` and with ASAN enabled
 
 Else, use the `CC` variable to specify the compiler you want to use, the `NO_ASAN=1` variable to disable Address Sanitizer, and the `ansi2html` target if you just want the executable.
 

@@ -21,7 +21,7 @@ jobs:
         timeout-minutes: 2
         run: |
           make clean
-          NO_ASAN=1 make CC=gcc -B ansi2html-static
+          NO_ASAN=1 make -B ansi2html-static
           mv ansi2html-static ansi2html
       - name: test minimal conversion
         timeout-minutes: 1

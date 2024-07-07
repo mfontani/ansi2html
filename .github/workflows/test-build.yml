@@ -22,12 +22,12 @@ jobs:
       - name: attempt compilation w/o asan
         timeout-minutes: 2
         run: |
-          NO_ASAN=1 make CC=gcc -B ansi2html
+          NO_ASAN=1 make -B ansi2html
       - name: attempt compilation with asan
         timeout-minutes: 2
         run: |
           make clean
-          make CC=gcc -B ansi2html
+          make -B ansi2html
       - name: run tests
         timeout-minutes: 1
         run: |
@@ -36,7 +36,7 @@ jobs:
         timeout-minutes: 2
         run: |
           make clean
-          NO_ASAN=1 make CC=gcc -B ansi2html-static
+          NO_ASAN=1 make -B ansi2html-static
       - name: test minimal conversion
         timeout-minutes: 1
         run: |
