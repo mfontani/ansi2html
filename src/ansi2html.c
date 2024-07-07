@@ -772,7 +772,7 @@ void ansi_style_span_style(
     if (!s->bold_is_bright && props->bold)
         printf("font-weight:bold;");
     else if (props->faint)
-        printf("font-weight:lighter;");
+        printf("opacity:0.67;");
     if (props->italic)
         printf("font-style:italic;");
     if (props->double_underline)
