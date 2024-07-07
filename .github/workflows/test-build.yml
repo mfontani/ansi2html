@@ -28,6 +28,10 @@ jobs:
         run: |
           make clean
           make CC=gcc -B ansi2html
+      - name: run tests
+        timeout-minutes: 1
+        run: |
+          make run-tests
       - name: attempt static compilation w/o asan
         timeout-minutes: 2
         run: |
