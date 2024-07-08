@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
             if (i + 1 < argc)
             {
                 i++;
+                palette = NULL;
                 for (size_t j = 0;
                      j < sizeof(named_palettes) / sizeof(named_palettes[0]);
                      j++)
