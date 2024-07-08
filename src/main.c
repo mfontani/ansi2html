@@ -34,8 +34,17 @@ int main(int argc, char *argv[])
         struct ansi_color_palette *palette;
     };
     struct named_palettes named_palettes[] = {
-        {"win10-console", PALETTE_WIN10_CONSOLE},
-        {"vga",           PALETTE_VGA          },
+        {"vga",              PALETTE_VGA             },
+        {"winxp-console",    PALETTE_WINXP_CONSOLE   },
+        {"powershell",       PALETTE_POWERSHELL      },
+        {"vscode",           PALETTE_VSCODE          },
+        {"win10-console",    PALETTE_WIN10_CONSOLE   },
+        {"terminal-app",     PALETTE_TERMINAL_APP    },
+        {"putty",            PALETTE_PUTTY           },
+        {"mirc",             PALETTE_MIRC            },
+        {"xterm",            PALETTE_XTERM           },
+        {"ubuntu",           PALETTE_UBUNTU          },
+        {"eclipse-terminal", PALETTE_ECLIPSE_TERMINAL},
     };
 #define SHOW_VALID_PALETTES()                                                  \
     do                                                                         \
