@@ -27,7 +27,7 @@ Example:
 ```bash
 (
     printf '<!DOCTYPE html><head><title>...</title>\n';
-    printf '<style>\n;
+    printf '<style>\n';
     ansi2html --palette vga --show-style-tag;
     printf '\n/* Additional styles... */\n';
     printf '</style>\n';
