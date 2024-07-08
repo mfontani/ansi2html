@@ -20,6 +20,24 @@ If `--pre` is enabled, it will add the default foreground and background color t
 
 You can use the `--palette NAME --rgb-for 0-16` option to show the RGB color for the given 0-16 color.
 
+By default, the program uses in-line styles for the colors. If you want to use CSS classes instead, use the `--use-classes` option. You can output the CSS contents that should go in the `style` tag with the `--show-style-tag` option.
+
+Example:
+
+```bash
+(
+    printf '<!DOCTYPE html><head><title>...</title>\n';
+    printf '<style>\n;
+    ansi2html --palette vga --show-style-tag;
+    printf '\n/* Additional styles... */\n';
+    printf '</style>\n';
+    printf '</head><body><!-- additional markup -->\n';
+    ansi2html --palette vga --use-classes --pre < input.txt
+    printf '<!-- more markup -->\n';
+    printf '</body></html>\n';
+) > output.html
+```
+
 ## How to compile (user)
 
 You can likely get away with something like this, until I get automations working:
