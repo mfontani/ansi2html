@@ -16,3 +16,5 @@ ansi_style_span_style(struct ansi_style *s, struct ansi_color_palette *palette);
 
 extern void
 reset_ansi_props(struct ansi_style *s, struct ansi_color_palette *palette);
+
+extern void showcase_palette(struct ansi_color_palette *palette);

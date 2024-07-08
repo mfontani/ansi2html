@@ -9,7 +9,7 @@
     "  --help                   Show this help.\n"                             \
     "  --palette, -p <name>     Use the named palette. Default is vga.\n"      \
     "  --rgb-for <0-16>         Show the #RRGGBB for the given palette.\n"     \
-    "                           Only usable after a valid --palette.\n"        \
+    "  --showcase-palette       Show the palette in a table.\n"                \
     "  --bold-is-bright, -b     A bold color is a bright color.\n"             \
     "  --pre                    Wrap the output in a <pre> block, using the\n" \
     "                           default foreground and background colors.\n"   \
@@ -34,8 +34,17 @@ int main(int argc, char *argv[])
         struct ansi_color_palette *palette;
     };
     struct named_palettes named_palettes[] = {
-        {"win10-console", PALETTE_WIN10_CONSOLE},
-        {"vga",           PALETTE_VGA          },
+        {"vga",              PALETTE_VGA             },
+        {"winxp-console",    PALETTE_WINXP_CONSOLE   },
+        {"powershell",       PALETTE_POWERSHELL      },
+        {"vscode",           PALETTE_VSCODE          },
+        {"win10-console",    PALETTE_WIN10_CONSOLE   },
+        {"terminal-app",     PALETTE_TERMINAL_APP    },
+        {"putty",            PALETTE_PUTTY           },
+        {"mirc",             PALETTE_MIRC            },
+        {"xterm",            PALETTE_XTERM           },
+        {"ubuntu",           PALETTE_UBUNTU          },
+        {"eclipse-terminal", PALETTE_ECLIPSE_TERMINAL},
     };
 #define SHOW_VALID_PALETTES()                                                  \
     do                                                                         \
@@ -69,6 +78,7 @@ int main(int argc, char *argv[])
             if (i + 1 < argc)
             {
                 i++;
+                palette = NULL;
                 for (size_t j = 0;
                      j < sizeof(named_palettes) / sizeof(named_palettes[0]);
                      j++)
@@ -149,6 +159,22 @@ int main(int argc, char *argv[])
                 SHOW_USAGE();
                 exit(1);
             }
+        }
+        else if (strcmp(argv[i], "--showcase-palette") == 0)
+        {
+            if (!palette)
+            {
+                (void)fprintf(
+                    stderr,
+                    "Error: Need to provide a palette with --palette before "
+                    "using --showcase-palette.\n"
+                );
+                SHOW_VALID_PALETTES();
+                SHOW_USAGE();
+                exit(1);
+            }
+            showcase_palette(palette);
+            exit(0);
         }
         else if ((strcmp(argv[i], "--bold-is-bright") == 0) ||
                  (strcmp(argv[i], "-b") == 0))

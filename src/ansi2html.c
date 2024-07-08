@@ -348,6 +348,47 @@ void ansi256_to_rgb(
         *rgb = rgb_error;
 }
 
+void showcase_palette(struct ansi_color_palette *palette)
+{
+    if (!palette)
+        return;
+    printf("Base colors (30-37):\n");
+    for (int i = 0; i < 8; i++)
+    {
+        printf(
+            " %-2d: \e[0;%dm0;%dm\e[0m   = "
+            "\e[0;38;2;%d;%d;%dm#%02X%02X%02X\e[0m\n",
+            i + 30, i + 30, i + 30, palette->base[i].red,
+            palette->base[i].green, palette->base[i].blue, palette->base[i].red,
+            palette->base[i].green, palette->base[i].blue
+        );
+    }
+    printf("Bright colors (90-97):\n");
+    for (int i = 0; i < 8; i++)
+    {
+        printf(
+            " %-2d: \e[0;%dm0;%dm\e[0m   = "
+            "\e[0;38;2;%d;%d;%dm#%02X%02X%02X\e[0m\n",
+            i + 90, i + 90, i + 90, palette->bright[i].red,
+            palette->bright[i].green, palette->bright[i].blue,
+            palette->bright[i].red, palette->bright[i].green,
+            palette->bright[i].blue
+        );
+    }
+    printf("Bright colors (30-37 with \"bold is bright\"):\n");
+    for (int i = 0; i < 8; i++)
+    {
+        printf(
+            " %-2d: \e[0;1;%dm0;1;%dm\e[0m = "
+            "\e[0;38;2;%d;%d;%dm#%02X%02X%02X\e[0m\n",
+            i + 30, i + 30, i + 30, palette->bright[i].red,
+            palette->bright[i].green, palette->bright[i].blue,
+            palette->bright[i].red, palette->bright[i].green,
+            palette->bright[i].blue
+        );
+    }
+}
+
 #ifdef DEBUG_SET_ANSI_STYLE_PROPERTIES
 #define DEBUG(...) printf(__VA_ARGS__)
 #else
