@@ -11,10 +11,15 @@ extern void show_ansi_style(
     struct ansi_style *s, const char *file, int line, const char *funcname
 );
 
-extern void
-ansi_style_span_style(struct ansi_style *s, struct ansi_color_palette *palette);
+extern void ansi_span_start(
+    struct ansi_style *s, struct ansi_color_palette *palette, bool use_classes
+);
 
 extern void
 reset_ansi_props(struct ansi_style *s, struct ansi_color_palette *palette);
 
 extern void showcase_palette(struct ansi_color_palette *palette);
+
+extern void ansi256_to_rgb(
+    int color, struct ansi_color_palette *palette, struct ansi_rgb *rgb
+);

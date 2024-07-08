@@ -10,6 +10,12 @@
     "  --palette, -p <name>     Use the named palette. Default is vga.\n"      \
     "  --rgb-for <0-16>         Show the #RRGGBB for the given palette.\n"     \
     "  --showcase-palette       Show the palette in a table.\n"                \
+    "  --show-style-tag         Output the style tag contents.\n"              \
+    "                           Useful before using --use-classes.\n"          \
+    "                           See also --bold-is-bright.\n"                  \
+    "  --use-classes            Use CSS classes where possible.\n"             \
+    "                           Default is to use inline styles.\n"            \
+    "                           Use --show-style-tag first, to output it.\n"   \
     "  --bold-is-bright, -b     A bold color is a bright color.\n"             \
     "  --pre                    Wrap the output in a <pre> block, using the\n" \
     "                           default foreground and background colors.\n"   \
@@ -70,6 +76,8 @@ int main(int argc, char *argv[])
     char *pre_bg_color = NULL;
     // And/or would you like some additional style to be added to the pre?
     char *pre_add_style = NULL;
+    // Do you want to use CSS classes, or in-line styles?
+    bool use_classes = false;
 
     for (int i = 1; i < argc; i++)
     {
@@ -257,6 +265,70 @@ int main(int argc, char *argv[])
                 exit(1);
             }
         }
+        else if (strcmp(argv[i], "--use-classes") == 0)
+        {
+            use_classes = true;
+        }
+        else if (strcmp(argv[i], "--show-style-tag") == 0)
+        {
+            printf(
+                ".ansi2html{"
+                "color:#%02X%02X%02X;background-color:#%02X%02X%02X;"
+                "}",
+                palette->base[7].red, palette->base[7].green,
+                palette->base[7].blue, palette->base[0].red,
+                palette->base[0].green, palette->base[0].blue
+            );
+            printf(
+                ".ansi2html .fg-default{color:#%02X%02X%02X;}",
+                palette->base[7].red, palette->base[7].green,
+                palette->base[7].blue
+            );
+            printf(
+                ".ansi2html .bg-default{background-color:#%02X%02X%02X;}",
+                palette->base[0].red, palette->base[0].green,
+                palette->base[0].blue
+            );
+            for (int j = 0; j < 256; j++)
+            {
+                struct ansi_rgb rgb = {0};
+                ansi256_to_rgb(j, palette, &rgb);
+                printf(
+                    ".ansi2html .fg-%d{color:#%02X%02X%02X;}", j, rgb.red,
+                    rgb.green, rgb.blue
+                );
+                printf(
+                    ".ansi2html .bg-%d{background-color:#%02X%02X%02X;}", j,
+                    rgb.red, rgb.green, rgb.blue
+                );
+            }
+            printf(".ansi2html .bold{font-weight:bold;}");
+            if (style.bold_is_bright)
+                for (int j = 0; j < 8; j++)
+                {
+                    struct ansi_rgb rgb = {0};
+                    ansi256_to_rgb(j + 8, palette, &rgb);
+                    printf(
+                        ".ansi2html "
+                        ".bold.fg-%d{font-weight:initial;color:#%02X%02X%02X;}",
+                        j, rgb.red, rgb.green, rgb.blue
+                    );
+                }
+            printf(".ansi2html .faint{opacity:0.67;}");
+            printf(".ansi2html .italic{font-style:italic;}");
+            printf(".ansi2html .underline{text-decoration:underline;}");
+            printf(".ansi2html "
+                   ".double-underline{text-decoration:underline;border-bottom:"
+                   "3px double;}");
+            printf(".ansi2html .slow-blink{text-decoration:blink;}");
+            printf(".ansi2html .fast-blink{text-decoration:blink;}");
+            printf(".ansi2html .crossout{text-decoration:line-through;}");
+            printf(".ansi2html .fraktur{font-family:fraktur;}");
+            printf(".ansi2html .frame{border:1px solid;}");
+            printf(".ansi2html .circle{border:1px solid;border-radius:50%%;}");
+            printf(".ansi2html .overline{text-decoration:overline;}");
+            exit(0);
+        }
         else
         {
             (void)fprintf(stderr, "Error: Unknown argument '%s'.\n", argv[i]);
@@ -276,7 +348,7 @@ int main(int argc, char *argv[])
 
     if (wrap_in_pre)
     {
-        printf("<pre style=\"");
+        printf("<pre %s style=\"", use_classes ? "class=\"ansi2html\"" : "");
         if (pre_fg_color && pre_bg_color)
             printf("color:%s;background-color:%s;", pre_fg_color, pre_bg_color);
         else if (pre_fg_color)
@@ -456,9 +528,8 @@ int main(int argc, char *argv[])
                 }
             }
             set_ansi_style_properties(palette, &style, sgrs, sgrs_len);
-            printf("</span><span style=\"");
-            ansi_style_span_style(&style, palette);
-            printf("\">");
+            printf("</span>");
+            ansi_span_start(&style, palette, use_classes);
             break;
         case '&':
             printf("&amp;");
