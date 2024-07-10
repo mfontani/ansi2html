@@ -9,20 +9,17 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    container: debian:bookworm
+    container: alpine:latest
     steps:
       - uses: actions/checkout@v4
       - name: install prerequisites
         timeout-minutes: 10
         run: |
-          apt-get -qq update
-          apt-get -qq install -y build-essential xz-utils
-      - name: attempt static compilation w/o asan
+          apk add --no-cache clang musl-dev binutils xz nodejs
+      - name: static compilation with clang/musl
         timeout-minutes: 2
         run: |
-          make clean
-          NO_ASAN=1 make -B ansi2html-static
-          mv ansi2html-static ansi2html
+          clang -O2 -o ansi2html -static -Wl,-strip-all -Wl,-static src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c
       - name: test minimal conversion
         timeout-minutes: 1
         run: |
@@ -30,7 +27,9 @@ jobs:
           echo
           printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html -b -p vga
           echo
-      - run: xz --compress --stdout ansi2html > ansi2html.xz
+      - name: compress binary
+        timeout-minutes: 1
+        run: xz --compress --stdout ansi2html > ansi2html.xz
       - uses: actions/upload-artifact@master
         with:
           name: ansi2html.xz
