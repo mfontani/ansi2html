@@ -38,9 +38,22 @@ Example:
 ) > output.html
 ```
 
+## How to install
+
+You can download a pre-packaged binary from the
+[releases page](https://github.com/mfontani/ansi2html/releases),
+or use a tool such as [ubi](https://github.com/houseabsolute/ubi) to fetch it
+and install it to your local `$HOME/bin` (assuming it's in your `$PATH`, it'll
+Just Work®).
+
+```bash
+$ ubi --project mfontani/ansi2html --in "$HOME/bin"
+$ printf '\e[31mred!\e[0m\n' | ansi2html
+```
+
 ## How to compile (user)
 
-You can likely get away with something like this, until I get automations working:
+You can likely get away with something like this:
 
 ```bash
 env NO_ASAN=1 make ansi2html
