@@ -3,6 +3,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+// fputc_unlocked etc. aren't available, seemingly, under musl.
+// #ifdef NO_UNLOCKED_STDIO
+#define PUTCHAR(c) (void)fputc(c, stdout)
+#define FPUTS(s, fd) (void)fputs(s, fd)
+// #else
+// #define PUTCHAR(c) (void)fputc_unlocked(c, stdout)
+// #define FPUTS(s, fd) (void)fputs_unlocked(s, fd)
+// #endif
+
 #define USAGE_FMT                                                              \
     "Usage: %s [options]\n"                                                    \
     "Options:\n"                                                               \
