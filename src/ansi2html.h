@@ -11,7 +11,8 @@ extern void show_ansi_style(
     struct ansi_style *s, const char *file, int line, const char *funcname
 );
 
-extern void ansi_span_start(
+// Returns a static string. Beware.
+extern char *ansi_span_start(
     struct ansi_style *s, struct ansi_color_palette *palette, bool use_classes
 );
 

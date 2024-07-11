@@ -843,12 +843,12 @@ static void styles_for_props(
     (void)pc;
 }
 
-void ansi_span_start(
+char *ansi_span_start(
     struct ansi_style *s, struct ansi_color_palette *palette, bool use_classes
 )
 {
     if (!s || !palette)
-        return;
+        return NULL;
     struct ansi_style_properties *props = &s->style_properties;
     struct ansi_color *fg = &s->color_foreground;
     struct ansi_color *bg = &s->color_background;
@@ -920,14 +920,18 @@ void ansi_span_start(
         );
         ps = stpcpy(ps, this_style);
     }
+    if (!classes[0] && !styles[0])
+        return NULL;
     (void)ps;
     (void)pc;
-    printf(
-        "<span %s%s%s%s%s%s%s>", classes[0] ? "class=\"" : "",
+    static char span_start[1024] = {0};
+    (void)snprintf(
+        span_start, 1024, "<span %s%s%s%s%s%s%s>", classes[0] ? "class=\"" : "",
         classes[0] ? classes : "", classes[0] ? "\"" : "",
         classes[0] && styles[0] ? " " : "", styles[0] ? "style=\"" : "",
         styles[0] ? styles : "", styles[0] ? "\"" : ""
     );
+    return span_start;
 }
 
 void reset_ansi_props(struct ansi_style *s, struct ansi_color_palette *palette)

@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
                     rgb.red, rgb.green, rgb.blue
                 );
             }
-            printf(".ansi2html .bold{font-weight:bold;}");
+            FPUTS(".ansi2html .bold{font-weight:bold;}", stdout);
             if (style.bold_is_bright)
                 for (int j = 0; j < 8; j++)
                 {
@@ -323,19 +323,24 @@ int main(int argc, char *argv[])
                         j, rgb.red, rgb.green, rgb.blue
                     );
                 }
-            printf(".ansi2html .faint{opacity:0.67;}");
-            printf(".ansi2html .italic{font-style:italic;}");
-            printf(".ansi2html .underline{text-decoration:underline;}");
+            FPUTS(".ansi2html .faint{opacity:0.67;}", stdout);
+            FPUTS(".ansi2html .italic{font-style:italic;}", stdout);
+            FPUTS(".ansi2html .underline{text-decoration:underline;}", stdout);
             printf(".ansi2html "
                    ".double-underline{text-decoration:underline;border-bottom:"
                    "3px double;}");
-            printf(".ansi2html .slow-blink{text-decoration:blink;}");
-            printf(".ansi2html .fast-blink{text-decoration:blink;}");
-            printf(".ansi2html .crossout{text-decoration:line-through;}");
-            printf(".ansi2html .fraktur{font-family:fraktur;}");
-            printf(".ansi2html .frame{border:1px solid;}");
-            printf(".ansi2html .circle{border:1px solid;border-radius:50%%;}");
-            printf(".ansi2html .overline{text-decoration:overline;}");
+            FPUTS(".ansi2html .slow-blink{text-decoration:blink;}", stdout);
+            FPUTS(".ansi2html .fast-blink{text-decoration:blink;}", stdout);
+            FPUTS(
+                ".ansi2html .crossout{text-decoration:line-through;}", stdout
+            );
+            FPUTS(".ansi2html .fraktur{font-family:fraktur;}", stdout);
+            FPUTS(".ansi2html .frame{border:1px solid;}", stdout);
+            FPUTS(
+                ".ansi2html .circle{border:1px solid;border-radius:50%%;}",
+                stdout
+            );
+            FPUTS(".ansi2html .overline{text-decoration:overline;}", stdout);
             exit(0);
         }
         else
@@ -381,10 +386,25 @@ int main(int argc, char *argv[])
             );
         if (pre_add_style)
             printf("%s", pre_add_style);
-        printf("\">");
+        FPUTS("\">", stdout);
     }
 
-    printf("<span>");
+    // We "keep" the span "declaration" for the current chunk of text, so we
+    // can output it if we need to, and close it before opening a new one:
+    const char *span = NULL;
+    // We keep track of whether we have outputted a span, so we can close it
+    // or output it the first time:
+    bool span_outputted = false;
+
+#define OUTPUT_SPAN_IF_NEEDED()                                                \
+    do                                                                         \
+    {                                                                          \
+        if (span && !span_outputted)                                           \
+        {                                                                      \
+            FPUTS(span, stdout);                                               \
+            span_outputted = true;                                             \
+        }                                                                      \
+    } while (0)
 
     // Read STDIN, and convert ANSI to HTML:
     int c;
@@ -406,21 +426,23 @@ int main(int argc, char *argv[])
             c = getchar();
             if (c == EOF)
             {
-                printf("&#9243;");
+                OUTPUT_SPAN_IF_NEEDED();
+                FPUTS("&#9243;", stdout);
                 break;
             }
             read++;
             if (c != '[')
             {
-                printf("&#9243;");
+                OUTPUT_SPAN_IF_NEEDED();
+                FPUTS("&#9243;", stdout);
                 if (c == '<')
-                    printf("&lt;");
+                    FPUTS("&lt;", stdout);
                 else if (c == '>')
-                    printf("&gt;");
+                    FPUTS("&gt;", stdout);
                 else if (c == '&')
-                    printf("&amp;");
+                    FPUTS("&amp;", stdout);
                 else
-                    putchar(c);
+                    PUTCHAR(c);
                 break;
             }
             // We have an escape sequence. Read until 'm':
@@ -537,27 +559,30 @@ int main(int argc, char *argv[])
                 }
             }
             set_ansi_style_properties(palette, &style, sgrs, sgrs_len);
-            printf("</span>");
-            ansi_span_start(&style, palette, use_classes);
-            break;
-        case '&':
-            printf("&amp;");
-            break;
-        case '<':
-            printf("&lt;");
-            break;
-        case '>':
-            printf("&gt;");
+            if (span_outputted)
+                FPUTS("</span>", stdout);
+            span = ansi_span_start(&style, palette, use_classes);
+            span_outputted = false;
             break;
         default:
-            putchar(c);
+            OUTPUT_SPAN_IF_NEEDED();
+            if (c == '&')
+                FPUTS("&amp;", stdout);
+            else if (c == '<')
+                FPUTS("&lt;", stdout);
+            else if (c == '>')
+                FPUTS("&gt;", stdout);
+            else
+                PUTCHAR(c);
             break;
         }
     }
-    printf("</span>");
+
+    if (span_outputted)
+        FPUTS("</span>", stdout);
 
     if (wrap_in_pre)
-        printf("</pre>");
+        FPUTS("</pre>", stdout);
 
     return 0;
 }
