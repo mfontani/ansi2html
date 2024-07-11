@@ -26,5 +26,6 @@ extern struct ansi_color_palette *PALETTE_MIRC;
 extern struct ansi_color_palette *PALETTE_XTERM;
 extern struct ansi_color_palette *PALETTE_UBUNTU;
 extern struct ansi_color_palette *PALETTE_ECLIPSE_TERMINAL;
+extern struct ansi_color_palette *PALETTE_DRACULA;
 
 #endif // ANSI_COLOR_PALETTE_H

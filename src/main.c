@@ -60,6 +60,7 @@ int main(int argc, char *argv[])
         {"xterm",            PALETTE_XTERM           },
         {"ubuntu",           PALETTE_UBUNTU          },
         {"eclipse-terminal", PALETTE_ECLIPSE_TERMINAL},
+        {"dracula",          PALETTE_DRACULA         },
     };
 #define SHOW_VALID_PALETTES()                                                  \
     do                                                                         \
