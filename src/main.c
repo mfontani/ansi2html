@@ -3,37 +3,33 @@
 #include <stdlib.h>
 #include <string.h>
 
-// fputc_unlocked etc. aren't available, seemingly, under musl.
-// #ifdef NO_UNLOCKED_STDIO
-#define PUTCHAR(c) (void)fputc(c, stdout)
-#define FPUTS(s, fd) (void)fputs(s, fd)
-// #else
-// #define PUTCHAR(c) (void)fputc_unlocked(c, stdout)
-// #define FPUTS(s, fd) (void)fputs_unlocked(s, fd)
-// #endif
+#ifdef ITERM2_COLOR_SCHEMES
+#define WITH_ITERM2_COLOR_SCHEMES "Has"
+#else
+#define WITH_ITERM2_COLOR_SCHEMES "Does NOT have"
+#endif
 
 #define USAGE_FMT                                                              \
     "Usage: %s [options]\n"                                                    \
     "Options:\n"                                                               \
     "  --help                   Show this help.\n"                             \
     "  --palette, -p <name>     Use the named palette. Default is vga.\n"      \
-    "  --rgb-for <0-16>         Show the #RRGGBB for the given palette.\n"     \
+    "       " WITH_ITERM2_COLOR_SCHEMES " iTerm2-Color-Schemes palettes.\n"    \
+    "  --bold-is-bright, -b     A bold color is a bright color.\n"             \
+    "  --rgb-for <0-16,fg,bg> RRGGBB\n"                                        \
+    "      Override the base 16 colors, or the foreground or background\n"     \
+    "      color, with #RRGGBB.\n"                                             \
+    "  --show-rgb-for <0-16,fg,bg>  Show the #RRGGBB for the given palette.\n" \
     "  --showcase-palette       Show the palette in a table.\n"                \
     "  --show-style-tag         Output the style tag contents.\n"              \
-    "                           Useful before using --use-classes.\n"          \
-    "                           See also --bold-is-bright.\n"                  \
+    "       Useful before using --use-classes. See also --bold-is-bright.\n"   \
     "  --use-classes            Use CSS classes where possible.\n"             \
-    "                           Default is to use inline styles.\n"            \
-    "                           Use --show-style-tag first, to output it.\n"   \
-    "  --bold-is-bright, -b     A bold color is a bright color.\n"             \
+    "       Default is to use inline styles.\n"                                \
     "  --pre                    Wrap the output in a <pre> block, using the\n" \
-    "                           default foreground and background colors.\n"   \
-    "  --pre-fg-color <color>   Override the foreground color for the pre.\n"  \
-    "                           Only usable with --pre.\n"                     \
-    "  --pre-bg-color <color>   Override the background color for the pre.\n"  \
-    "                           Only usable with --pre.\n"                     \
+    "       default foreground and background colors.\n"                       \
     "  --pre-add-style <style>  Add the style to the pre.\n"                   \
-    "                           Only usable with --pre.\n"                     \
+    "       Only usable with --pre.\n"                                         \
+    "Note that the order of the options is important.\n"                       \
     ""
 
 int main(int argc, char *argv[])
@@ -61,6 +57,9 @@ int main(int argc, char *argv[])
         {"ubuntu",           PALETTE_UBUNTU          },
         {"eclipse-terminal", PALETTE_ECLIPSE_TERMINAL},
         {"dracula",          PALETTE_DRACULA         },
+#ifdef ITERM2_COLOR_SCHEMES
+#include "iterm2_color_schemes/named_palettes.h"
+#endif
     };
 #define SHOW_VALID_PALETTES()                                                  \
     do                                                                         \
@@ -78,12 +77,6 @@ int main(int argc, char *argv[])
 
     // Want this wrapped in a "pre" block?
     bool wrap_in_pre = false;
-    // If you want to wrap it in a <pre>, would you like to override the
-    // default foreground color to something else?
-    char *pre_fg_color = NULL;
-    // ... Or would you like to override the default background color to
-    // something else?
-    char *pre_bg_color = NULL;
     // And/or would you like some additional style to be added to the pre?
     char *pre_add_style = NULL;
     // Do you want to use CSS classes, or in-line styles?
@@ -132,25 +125,42 @@ int main(int argc, char *argv[])
             SHOW_USAGE();
             exit(0);
         }
-        else if (strcmp(argv[i], "--rgb-for") == 0)
+        else if (strcmp(argv[i], "--show-rgb-for") == 0)
         {
             if (i + 1 < argc)
             {
                 i++;
-                long color = strtol(argv[i], NULL, 10);
+                if (!strcmp(argv[i], "fg"))
+                {
+                    (void)printf(
+                        "#%02X%02X%02X\n", palette->default_fg.red,
+                        palette->default_fg.green, palette->default_fg.blue
+                    );
+                    exit(0);
+                }
+                else if (!strcmp(argv[i], "bg"))
+                {
+                    (void)printf(
+                        "#%02X%02X%02X\n", palette->default_bg.red,
+                        palette->default_bg.green, palette->default_bg.blue
+                    );
+                    exit(0);
+                }
+                char *endptr = NULL;
+                long color = strtol(argv[i], &endptr, 10);
+                if (!endptr || *endptr != '\0')
+                {
+                    (void)fprintf(
+                        stderr,
+                        "Error: Invalid color '%s' needs to be 0-15 or fg or "
+                        "bg.\n",
+                        argv[i]
+                    );
+                    SHOW_USAGE();
+                    exit(1);
+                }
                 if (color >= 0 && color <= 15)
                 {
-                    if (!palette)
-                    {
-                        (void)fprintf(
-                            stderr,
-                            "Error: Need to provide a palette with --palette "
-                            "before using --rgb-for.\n"
-                        );
-                        SHOW_VALID_PALETTES();
-                        SHOW_USAGE();
-                        exit(1);
-                    }
                     struct ansi_rgb rgb = {0};
                     if (color < 8)
                         rgb = palette->base[color];
@@ -163,7 +173,9 @@ int main(int argc, char *argv[])
                 else
                 {
                     (void)fprintf(
-                        stderr, "Error: Invalid color '%s' needs to be 0-15.\n",
+                        stderr,
+                        "Error: Invalid color '%s' needs to be 0-15 or fg or "
+                        "bg.\n",
                         argv[i]
                     );
                     SHOW_USAGE();
@@ -172,25 +184,15 @@ int main(int argc, char *argv[])
             }
             else
             {
-                (void
-                )fprintf(stderr, "Error: Missing argument to '--rgb-for'.\n");
+                (void)fprintf(
+                    stderr, "Error: Missing argument to '--show-rgb-for'.\n"
+                );
                 SHOW_USAGE();
                 exit(1);
             }
         }
         else if (strcmp(argv[i], "--showcase-palette") == 0)
         {
-            if (!palette)
-            {
-                (void)fprintf(
-                    stderr,
-                    "Error: Need to provide a palette with --palette before "
-                    "using --showcase-palette.\n"
-                );
-                SHOW_VALID_PALETTES();
-                SHOW_USAGE();
-                exit(1);
-            }
             showcase_palette(palette);
             exit(0);
         }
@@ -202,54 +204,6 @@ int main(int argc, char *argv[])
         else if (strcmp(argv[i], "--pre") == 0)
         {
             wrap_in_pre = true;
-        }
-        else if (strcmp(argv[i], "--pre-fg-color") == 0)
-        {
-            if (!wrap_in_pre)
-            {
-                (void)fprintf(
-                    stderr, "Error: Need to use --pre before --pre-fg-color.\n"
-                );
-                SHOW_USAGE();
-                exit(1);
-            }
-            if (i + 1 < argc)
-            {
-                i++;
-                pre_fg_color = argv[i];
-            }
-            else
-            {
-                (void)fprintf(
-                    stderr, "Error: Missing argument to '--pre-fg-color'.\n"
-                );
-                SHOW_USAGE();
-                exit(1);
-            }
-        }
-        else if (strcmp(argv[i], "--pre-bg-color") == 0)
-        {
-            if (!wrap_in_pre)
-            {
-                (void)fprintf(
-                    stderr, "Error: Need to use --pre before --pre-bg-color.\n"
-                );
-                SHOW_USAGE();
-                exit(1);
-            }
-            if (i + 1 < argc)
-            {
-                i++;
-                pre_bg_color = argv[i];
-            }
-            else
-            {
-                (void)fprintf(
-                    stderr, "Error: Missing argument to '--pre-bg-color'.\n"
-                );
-                SHOW_USAGE();
-                exit(1);
-            }
         }
         else if (strcmp(argv[i], "--pre-add-style") == 0)
         {
@@ -285,19 +239,19 @@ int main(int argc, char *argv[])
                 ".ansi2html{"
                 "color:#%02X%02X%02X;background-color:#%02X%02X%02X;"
                 "}",
-                palette->base[7].red, palette->base[7].green,
-                palette->base[7].blue, palette->base[0].red,
-                palette->base[0].green, palette->base[0].blue
+                palette->default_fg.red, palette->default_fg.green,
+                palette->default_fg.blue, palette->default_bg.red,
+                palette->default_bg.green, palette->default_bg.blue
             );
             printf(
                 ".ansi2html .fg-default{color:#%02X%02X%02X;}",
-                palette->base[7].red, palette->base[7].green,
-                palette->base[7].blue
+                palette->default_fg.red, palette->default_fg.green,
+                palette->default_fg.blue
             );
             printf(
                 ".ansi2html .bg-default{background-color:#%02X%02X%02X;}",
-                palette->base[0].red, palette->base[0].green,
-                palette->base[0].blue
+                palette->default_bg.red, palette->default_bg.green,
+                palette->default_bg.blue
             );
             for (int j = 0; j < 256; j++)
             {
@@ -312,37 +266,112 @@ int main(int argc, char *argv[])
                     rgb.red, rgb.green, rgb.blue
                 );
             }
-            FPUTS(".ansi2html .bold{font-weight:bold;}", stdout);
-            if (style.bold_is_bright)
-                for (int j = 0; j < 8; j++)
-                {
-                    struct ansi_rgb rgb = {0};
-                    ansi256_to_rgb(j + 8, palette, &rgb);
-                    printf(
-                        ".ansi2html "
-                        ".bold.fg-%d{font-weight:initial;color:#%02X%02X%02X;}",
-                        j, rgb.red, rgb.green, rgb.blue
-                    );
-                }
-            FPUTS(".ansi2html .faint{opacity:0.67;}", stdout);
-            FPUTS(".ansi2html .italic{font-style:italic;}", stdout);
-            FPUTS(".ansi2html .underline{text-decoration:underline;}", stdout);
-            printf(".ansi2html "
-                   ".double-underline{text-decoration:underline;border-bottom:"
-                   "3px double;}");
-            FPUTS(".ansi2html .slow-blink{text-decoration:blink;}", stdout);
-            FPUTS(".ansi2html .fast-blink{text-decoration:blink;}", stdout);
-            FPUTS(
-                ".ansi2html .crossout{text-decoration:line-through;}", stdout
-            );
-            FPUTS(".ansi2html .fraktur{font-family:fraktur;}", stdout);
-            FPUTS(".ansi2html .frame{border:1px solid;}", stdout);
-            FPUTS(
-                ".ansi2html .circle{border:1px solid;border-radius:50%%;}",
-                stdout
-            );
-            FPUTS(".ansi2html .overline{text-decoration:overline;}", stdout);
+            show_additional_styles();
             exit(0);
+        }
+        else if (!strcmp(argv[i], "--rgb-for"))
+        {
+            struct ansi_rgb *which_rgb = NULL;
+            if (i + 1 < argc)
+            {
+                i++;
+                if (!strcmp(argv[i], "fg"))
+                    which_rgb = &palette->default_fg;
+                else if (!strcmp(argv[i], "bg"))
+                    which_rgb = &palette->default_bg;
+                else
+                {
+                    char *endptr = NULL;
+                    long color = strtol(argv[i], &endptr, 10);
+                    if (!endptr || *endptr != '\0')
+                    {
+                        (void)fprintf(
+                            stderr,
+                            "Error: Invalid color '%s' needs to be 0-15 or fg "
+                            "or bg.\n",
+                            argv[i]
+                        );
+                        SHOW_USAGE();
+                        exit(1);
+                    }
+                    if (color < 8)
+                        which_rgb = &palette->base[color];
+                    else if (color < 16)
+                        which_rgb = &palette->bright[color - 8];
+                }
+                if (!which_rgb)
+                {
+                    (void)fprintf(
+                        stderr,
+                        "Error: Invalid color '%s' needs to be 0-15 or fg or "
+                        "bg.\n",
+                        argv[i]
+                    );
+                    SHOW_USAGE();
+                    exit(1);
+                }
+                if (i + 1 < argc)
+                {
+                    i++;
+                    // The color should be in the format #RRGGBB or RRGGBB:
+                    char *color = argv[i];
+                    if (color[0] == '#')
+                        color++;
+                    if (strlen(color) != 6)
+                    {
+                        (void)fprintf(
+                            stderr,
+                            "Error: Invalid color '%s' needs to be #RRGGBB.\n",
+                            argv[i]
+                        );
+                        SHOW_USAGE();
+                        exit(1);
+                    }
+                    char *endptr = NULL;
+                    long lrgb = strtol(color, &endptr, 16);
+                    if (!endptr || *endptr != '\0')
+                    {
+                        (void)fprintf(
+                            stderr,
+                            "Error: Invalid color '%s' needs to be #RRGGBB.\n",
+                            argv[i]
+                        );
+                        SHOW_USAGE();
+                        exit(1);
+                    }
+                    if (lrgb < 0 || lrgb > 0xFFFFFF)
+                    {
+                        (void)fprintf(
+                            stderr,
+                            "Error: Invalid color '%s' needs to be #RRGGBB.\n",
+                            argv[i]
+                        );
+                        SHOW_USAGE();
+                        exit(1);
+                    }
+                    unsigned int rgb = (unsigned int)lrgb;
+                    which_rgb->red = (rgb >> 16) & 0xFF;
+                    which_rgb->green = (rgb >> 8) & 0xFF;
+                    which_rgb->blue = rgb & 0xFF;
+                }
+                else
+                {
+                    (void)fprintf(
+                        stderr, "Error: Missing argument 2 for '--rgb-for'.\n"
+                    );
+                    SHOW_USAGE();
+                    exit(1);
+                }
+            }
+            else
+            {
+                (void)fprintf(
+                    stderr, "Error: Missing argument 1 for '--rgb-for'.\n"
+                );
+                SHOW_USAGE();
+                exit(1);
+            }
+#undef CHECK_COLOR_ARG
         }
         else
         {
@@ -352,42 +381,18 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (!palette)
-    {
-        (void
-        )fprintf(stderr, "Error: Need to provide a palette with --palette.\n");
-        SHOW_VALID_PALETTES();
-        SHOW_USAGE();
-        exit(1);
-    }
-
     if (wrap_in_pre)
     {
-        printf("<pre %s style=\"", use_classes ? "class=\"ansi2html\"" : "");
-        if (pre_fg_color && pre_bg_color)
-            printf("color:%s;background-color:%s;", pre_fg_color, pre_bg_color);
-        else if (pre_fg_color)
-            printf(
-                "color:%s;background-color:#%02X%02X%02X;", pre_fg_color,
-                palette->base[0].red, palette->base[0].green,
-                palette->base[0].blue
-            );
-        else if (pre_bg_color)
-            printf(
-                "color:#%02X%02X%02X;background-color:%s;",
-                palette->base[7].red, palette->base[7].green,
-                palette->base[7].blue, pre_bg_color
-            );
-        else
-            printf(
-                "color:#%02X%02X%02X;background-color:#%02X%02X%02X;",
-                palette->base[7].red, palette->base[7].green,
-                palette->base[7].blue, palette->base[0].red,
-                palette->base[0].green, palette->base[0].blue
-            );
+        printf("<pre %sstyle=\"", use_classes ? "class=\"ansi2html\" " : "");
+        printf(
+            "color:#%02X%02X%02X;background-color:#%02X%02X%02X;",
+            palette->default_fg.red, palette->default_fg.green,
+            palette->default_fg.blue, palette->default_bg.red,
+            palette->default_bg.green, palette->default_bg.blue
+        );
         if (pre_add_style)
-            printf("%s", pre_add_style);
-        FPUTS("\">", stdout);
+            PUTS(pre_add_style);
+        PUTS("\">");
     }
 
     // We "keep" the span "declaration" for the current chunk of text, so we
@@ -402,7 +407,7 @@ int main(int argc, char *argv[])
     {                                                                          \
         if (span && !span_outputted)                                           \
         {                                                                      \
-            FPUTS(span, stdout);                                               \
+            PUTS(span);                                                        \
             span_outputted = true;                                             \
         }                                                                      \
     } while (0)
@@ -410,7 +415,7 @@ int main(int argc, char *argv[])
     // Read STDIN, and convert ANSI to HTML:
     int c;
     size_t read = 0;
-    while ((c = getchar()) != EOF)
+    while ((c = GETCHAR()) != EOF)
     {
         read++;
         unsigned char sgr_chars[256];
@@ -424,33 +429,33 @@ int main(int argc, char *argv[])
         {
         case '\033':
             // The sequence should start with '[':
-            c = getchar();
+            c = GETCHAR();
             if (c == EOF)
             {
                 OUTPUT_SPAN_IF_NEEDED();
-                FPUTS("&#9243;", stdout);
+                PUTS("&#9243;");
                 break;
             }
             read++;
             if (c != '[')
             {
                 OUTPUT_SPAN_IF_NEEDED();
-                FPUTS("&#9243;", stdout);
+                PUTS("&#9243;");
                 if (c == '<')
-                    FPUTS("&lt;", stdout);
+                    PUTS("&lt;");
                 else if (c == '>')
-                    FPUTS("&gt;", stdout);
+                    PUTS("&gt;");
                 else if (c == '&')
-                    FPUTS("&amp;", stdout);
+                    PUTS("&amp;");
                 else
-                    PUTCHAR(c);
+                    PUTC(c);
                 break;
             }
             // We have an escape sequence. Read until 'm':
             sgr_chars[0] = '\0';
             sgr_chars_len = 0;
             size_t begun_at = read;
-            while ((c = getchar()) != EOF)
+            while ((c = GETCHAR()) != EOF)
             {
                 read++;
                 if (c == 'm')
@@ -561,29 +566,29 @@ int main(int argc, char *argv[])
             }
             set_ansi_style_properties(palette, &style, sgrs, sgrs_len);
             if (span_outputted)
-                FPUTS("</span>", stdout);
+                PUTS("</span>");
             span = ansi_span_start(&style, palette, use_classes);
             span_outputted = false;
             break;
         default:
             OUTPUT_SPAN_IF_NEEDED();
             if (c == '&')
-                FPUTS("&amp;", stdout);
+                PUTS("&amp;");
             else if (c == '<')
-                FPUTS("&lt;", stdout);
+                PUTS("&lt;");
             else if (c == '>')
-                FPUTS("&gt;", stdout);
+                PUTS("&gt;");
             else
-                PUTCHAR(c);
+                PUTC(c);
             break;
         }
     }
 
     if (span_outputted)
-        FPUTS("</span>", stdout);
+        PUTS("</span>");
 
     if (wrap_in_pre)
-        FPUTS("</pre>", stdout);
+        PUTS("</pre>");
 
     return 0;
 }

@@ -16,24 +16,45 @@ jobs:
         timeout-minutes: 10
         run: |
           apk add --no-cache clang musl-dev binutils xz nodejs
-      - name: static compilation with clang/musl
+      - name: static compilation with clang/musl [no iTerm2 palettes]
         timeout-minutes: 2
         run: |
-          clang -O2 -o ansi2html -static -Wl,-strip-all -Wl,-static src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c
-      - name: test minimal conversion
+          clang -O2 -o ansi2html-noi2 -flto -static -Wl,-strip-all -Wl,-static src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c src/iterm2_color_schemes/ansi_color_palette.c
+      - name: test minimal conversion [no iTerm2 palettes]
         timeout-minutes: 1
         run: |
-          printf '\e[0;31mred\e[0;1;31mbold red\e[0m' | ./ansi2html -p vga
+          printf '\e[0;31mred\e[0;1;31mbold red\e[0m' | ./ansi2html-noi2 -p vga
           echo
-          printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html -b -p vga
+          printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html-noi2 -b -p vga
           echo
-      - name: compress binary
+      - name: static compilation with clang/musl [with iTerm2 palettes]
+        timeout-minutes: 2
+        run: |
+          clang -O2 -DITERM2_COLOR_SCHEMES -flto -o ansi2html -static -Wl,-strip-all -Wl,-static src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c src/iterm2_color_schemes/ansi_color_palette.c
+      - name: test minimal conversion [with iTerm2 palettes]
         timeout-minutes: 1
-        run: xz --compress --stdout ansi2html > ansi2html.xz
+        run: |
+          printf '\e[0;31mred\e[0;1;31mbold red\e[0m' | ./ansi2html -p i2_laser
+          echo
+          printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html -b -p i2_laser
+          echo
+      - name: compress binaries
+        timeout-minutes: 1
+        run: |
+          xz --compress --stdout ansi2html > ansi2html.xz
+          xz --compress --stdout ansi2html-noi2 > ansi2html-noi2.xz
+      - name: show sizes
+        timeout-minutes: 1
+        run: |
+          ls -laS ansi2html*
       - uses: actions/upload-artifact@master
         with:
           name: ansi2html.xz
           path: ansi2html.xz
+      - uses: actions/upload-artifact@master
+        with:
+          name: ansi2html-noi2.xz
+          path: ansi2html-noi2.xz
 
   release:
     needs: [build]
@@ -53,7 +74,7 @@ jobs:
     needs: [release]
     strategy:
       matrix:
-        file: ['ansi2html.xz']
+        file: ['ansi2html.xz', 'ansi2html-noi2.xz']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@master

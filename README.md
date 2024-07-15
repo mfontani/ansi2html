@@ -2,27 +2,45 @@
 
 A C program that converts (most) ANSI color escape (16, 256, and 24-bit) foreground and background color, and "style" codes to HTML.
 
+## How to install
+
+There are two binary versions on the [releases page](https://github.com/mfontani/ansi2html/releases):
+- `ansi2html`, which contains all base palettes _and_ palettes imported from [the iTerm2-Color-Schemes repo](https://github.com/mbadolato/iTerm2-Color-Schemes/tree/master/Xresources) (with an `i2_` prefix)
+- `ansi2html-noi2`, which contains only the base palettes, and is smaller (if you know all colors in the palette, can use the `--rgb-for` option multiple times, to customize the foreground, background and all base 16 colors)
+
+You can download a pre-packaged binary from the
+[releases page](https://github.com/mfontani/ansi2html/releases),
+or use a tool such as [ubi](https://github.com/houseabsolute/ubi) to fetch it
+and install it to your local `$HOME/bin` (assuming it's in your `$PATH`, it'll
+Just Work®).
+
+```bash
+$ ubi --project mfontani/ansi2html --in "$HOME/bin"
+$ printf '\e[31mred!\e[0m\n' | ansi2html
+```
+
 ## Usage
 
 ```bash
-ansi2html --palette vga < input.txt > output.html
+ansi2html < input.txt > output.html
 ```
 
-See `ansi2html --help` for more options.
+See `ansi2html --help` for more options. Options' order matters.
 
-You can choose a number of different palettes, which can be given as a parameter to the program. List the available ones with `ansi2html --palette`.
+You can choose a number of different palettes, which can be given as a parameter to the program. List the available ones with `ansi2html --palette`. The default palette is `vga`.
 
-You can optionally enable the "bold is bright" feature with `--bold-is-bright`, which will make bold text (i.e. for `\e[0;1;31m` appear as bright (i.e. `\e[0;91m`) text. This is disabled by default.
+You can further customize the palette (i.e. pick a palette, then customize a few colors; or use the default `vga` palette, and customize _all_ the colors) using the `--rgb-for <0-16,fg,bg> RRGGBB` option (e.g. `--rgb-for 0 101010` to customize the color 0 to be a dark black, or `--rgb-for fg 406040` to make the default foreground text a dark green).
+Note that only the first sixteen colors (dark 0-7 and bright 8-15), the default foreground, and the default background colors can be customized. The rest of the 256 colors (16-255) or indeed the 24-bit colors cannot be customized.
 
-The markup can be wrapped in a `pre` tag, if the `--pre` option is given.
+You can optionally enable the "bold is bright" feature with `--bold-is-bright` (or `-b`), which will make bold text for the first 7 base colors (i.e. for `\e[0;1;30m` through `\e[0;1;37m`) appear as bright text (i.e. `\e[0;90m` through `\e[0;97m`), as if the brighter colors were used for the foreground). This feature is disabled by default.
 
-If `--pre` is enabled, it will add the default foreground and background color to the tag. If you wish to set different ones, use the `--pre-fg-color` and `--pre-bg-color` options. If you moreover want to add more styles to the pre tag, use the `--pre-add-style` option.
+The markup outputted can be wrapped in a `pre` tag, by using the `--pre` option. If used, it will contain a `style` attribute, containing the default foreground and background colors' specification for the palette. If you wish to change those, use the `--rgb-for` option. If you need to add more styles to the pre tag, you can use the `--pre-add-style` option (i.e. `--pre-add-style 'padding:0.5em;'`).
 
-You can use the `--palette NAME --rgb-for 0-16` option to show the RGB color for the given 0-16 color.
+You can use the `--palette NAME --show-rgb-for <0-16,fg,bg>` option to show the RGB color for the given 0-16, foreground or background color. Or `--palette NAME --showcase-palette` to see the entire (foreground, background, and base 16 colors for a) palette.
 
-By default, the program uses in-line styles for the colors. If you want to use CSS classes instead, use the `--use-classes` option. You can output the CSS contents that should go in the `style` tag with the `--show-style-tag` option.
+By default, the program uses _in-line style attributes_ for the colors. If you want to use CSS classes instead, use the `--use-classes` option. You can output the CSS contents that should go in the `style` tag with the `--show-style-tag` option. Note that 24-bit colors will always use in-line style attributes, even if `--use-classes` is used.
 
-Example:
+Example using classes:
 
 ```bash
 (
@@ -36,19 +54,6 @@ Example:
     printf '<!-- more markup -->\n';
     printf '</body></html>\n';
 ) > output.html
-```
-
-## How to install
-
-You can download a pre-packaged binary from the
-[releases page](https://github.com/mfontani/ansi2html/releases),
-or use a tool such as [ubi](https://github.com/houseabsolute/ubi) to fetch it
-and install it to your local `$HOME/bin` (assuming it's in your `$PATH`, it'll
-Just Work®).
-
-```bash
-$ ubi --project mfontani/ansi2html --in "$HOME/bin"
-$ printf '\e[31mred!\e[0m\n' | ansi2html
 ```
 
 ## How to compile (user)
@@ -81,3 +86,5 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+But see also [src/iterm2_color_schemes](src/iterm2_color_schemes/README.md) for the licenses of the palettes imported from the iTerm2-Color-Schemes repo.

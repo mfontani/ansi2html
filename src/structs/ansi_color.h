@@ -8,7 +8,8 @@
 
 struct ansi_color
 {
-    // this can be COLOR_TYPE_16, COLOR_TYPE_256 or COLOR_TYPE_24BIT
+    // this can be COLOR_TYPE_16, COLOR_TYPE_256 or COLOR_TYPE_24BIT, or
+    // COLOR_TYPE_DEFAULT_FG or COLOR_TYPE_DEFAULT_BG
     struct ansi_color_type *color_type;
     // this can be ANSI_BG or ANSI_FG
     struct ansi_fg_or_bg *fg_or_bg;

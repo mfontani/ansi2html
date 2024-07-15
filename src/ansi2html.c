@@ -353,40 +353,86 @@ void showcase_palette(struct ansi_color_palette *palette)
 {
     if (!palette)
         return;
-    printf("Base colors (30-37):\n");
+    printf(
+        "Default: \e[0;38;2;%d;%d;%dm#%02X%02X%02X\e[0m on "
+        "\e[0;48;2;%d;%d;%dm#%02X%02X%02X\e[0m: "
+        "\e[0;38;2;%d;%d;%d;48;2;%d;%d;%dmExample\e[0m\n",
+        palette->default_fg.red, palette->default_fg.green,
+        palette->default_fg.blue, palette->default_fg.red,
+        palette->default_fg.green, palette->default_fg.blue,
+        palette->default_bg.red, palette->default_bg.green,
+        palette->default_bg.blue, palette->default_bg.red,
+        palette->default_bg.green, palette->default_bg.blue,
+        palette->default_fg.red, palette->default_fg.green,
+        palette->default_fg.blue, palette->default_bg.red,
+        palette->default_bg.green, palette->default_bg.blue
+    );
     for (int i = 0; i < 8; i++)
     {
         printf(
-            " %-2d: \e[0;%dm0;%dm\e[0m   = "
-            "\e[0;38;2;%d;%d;%dm#%02X%02X%02X\e[0m\n",
-            i + 30, i + 30, i + 30, palette->base[i].red,
-            palette->base[i].green, palette->base[i].blue, palette->base[i].red,
-            palette->base[i].green, palette->base[i].blue
-        );
-    }
-    printf("Bright colors (90-97):\n");
-    for (int i = 0; i < 8; i++)
-    {
-        printf(
-            " %-2d: \e[0;%dm0;%dm\e[0m   = "
-            "\e[0;38;2;%d;%d;%dm#%02X%02X%02X\e[0m\n",
-            i + 90, i + 90, i + 90, palette->bright[i].red,
+            "Color %d: "
+            "base: "
+            "\e[0;38;2;%d;%d;%dm#%02X%02X%02X "
+            "\e[0;48;2;%d;%d;%dm#%02X%02X%02X\e[0m"
+            " bright: "
+            "\e[0;38;2;%d;%d;%dm#%02X%02X%02X "
+            "\e[0;48;2;%d;%d;%dm#%02X%02X%02X\e[0m"
+            "\n",
+            i, palette->base[i].red, palette->base[i].green,
+            palette->base[i].blue, palette->base[i].red, palette->base[i].green,
+            palette->base[i].blue, palette->base[i].red, palette->base[i].green,
+            palette->base[i].blue, palette->base[i].red, palette->base[i].green,
+            palette->base[i].blue, palette->bright[i].red,
+            palette->bright[i].green, palette->bright[i].blue,
+            palette->bright[i].red, palette->bright[i].green,
+            palette->bright[i].blue, palette->bright[i].red,
             palette->bright[i].green, palette->bright[i].blue,
             palette->bright[i].red, palette->bright[i].green,
             palette->bright[i].blue
         );
     }
-    printf("Bright colors (30-37 with \"bold is bright\"):\n");
     for (int i = 0; i < 8; i++)
     {
-        printf(
-            " %-2d: \e[0;1;%dm0;1;%dm\e[0m = "
-            "\e[0;38;2;%d;%d;%dm#%02X%02X%02X\e[0m\n",
-            i + 30, i + 30, i + 30, palette->bright[i].red,
-            palette->bright[i].green, palette->bright[i].blue,
-            palette->bright[i].red, palette->bright[i].green,
-            palette->bright[i].blue
-        );
+        if (i == 0)
+            printf("%-7s", " ");
+        printf("%-2dm      ", i + 40);
+    }
+    printf("\n");
+    for (int i = 0; i < 8; i++)
+    {
+        printf("%-2dm    ", i + 30);
+        for (int j = 0; j < 8; j++)
+        {
+            printf(
+                "\e[0;38;2;%d;%d;%d;48;2;%d;%d;%dm%02d;%02dm\e[0m   ",
+                palette->base[i].red, palette->base[i].green,
+                palette->base[i].blue, palette->base[j].red,
+                palette->base[j].green, palette->base[j].blue, i + 30, j + 40
+            );
+        }
+        printf("\n");
+    }
+    for (int i = 0; i < 8; i++)
+    {
+        if (i == 0)
+            printf("%-7s", " ");
+        printf("%-3dm     ", i + 90);
+    }
+    printf("\n");
+    for (int i = 0; i < 8; i++)
+    {
+        printf("%-3dm   ", i + 100);
+        for (int j = 0; j < 8; j++)
+        {
+            printf(
+                "\e[0;38;2;%d;%d;%d;48;2;%d;%d;%dm%02d;%03dm\e[0m  ",
+                palette->bright[i].red, palette->bright[i].green,
+                palette->bright[i].blue, palette->bright[j].red,
+                palette->bright[j].green, palette->bright[j].blue, i + 90,
+                j + 100
+            );
+        }
+        printf("\n");
     }
 }
 
@@ -414,16 +460,16 @@ void set_ansi_style_properties(
     {
         style->style_properties = empty_props;
         // Also reset the colors to default:
-        style->color_foreground.color_type = COLOR_TYPE_16;
+        style->color_foreground.color_type = COLOR_TYPE_DEFAULT_FG;
         style->color_foreground.fg_or_bg = ANSI_FG;
-        style->color_foreground.rgb = palette->base[7];
-        style->color_foreground.is_base_color = true;
-        style->color_foreground.base_color = 7;
-        style->color_background.color_type = COLOR_TYPE_16;
+        style->color_foreground.rgb = palette->default_fg;
+        style->color_foreground.is_base_color = false;
+        style->color_foreground.base_color = -1;
+        style->color_background.color_type = COLOR_TYPE_DEFAULT_BG;
         style->color_background.fg_or_bg = ANSI_BG;
-        style->color_background.is_base_color = true;
-        style->color_background.base_color = 0;
-        style->color_background.rgb = palette->base[0];
+        style->color_background.is_base_color = false;
+        style->color_background.base_color = -1;
+        style->color_background.rgb = palette->default_bg;
         DEBUG("Reset all properties\n\n");
         return;
     }
@@ -438,16 +484,16 @@ void set_ansi_style_properties(
         {
         case 0: // Reset all to default
             *props = empty_props;
-            fg->color_type = COLOR_TYPE_16;
+            fg->color_type = COLOR_TYPE_DEFAULT_FG;
             fg->fg_or_bg = ANSI_FG;
-            fg->rgb = palette->base[7];
-            fg->is_base_color = true;
-            fg->base_color = 7;
-            bg->color_type = COLOR_TYPE_16;
+            fg->rgb = palette->default_fg;
+            fg->is_base_color = false;
+            fg->base_color = -1;
+            bg->color_type = COLOR_TYPE_DEFAULT_BG;
             bg->fg_or_bg = ANSI_BG;
-            bg->is_base_color = true;
-            bg->base_color = 0;
-            bg->rgb = palette->base[0];
+            bg->is_base_color = false;
+            bg->base_color = -1;
+            bg->rgb = palette->default_bg;
             DEBUG(" 0 -> Reset all properties\n");
             break;
         case 1:
@@ -631,11 +677,11 @@ void set_ansi_style_properties(
             }
             break;
         case 39: // Default foreground color
-            fg->color_type = COLOR_TYPE_16;
+            fg->color_type = COLOR_TYPE_DEFAULT_FG;
             fg->fg_or_bg = ANSI_FG;
-            fg->is_base_color = true;
-            fg->base_color = 7;
-            fg->rgb = palette->base[7];
+            fg->is_base_color = false;
+            fg->base_color = -1;
+            fg->rgb = palette->default_fg;
             DEBUG(
                 "39 -> Default foreground color -> fg RGB %02X%02X%02X\n",
                 fg->rgb.red, fg->rgb.green, fg->rgb.blue
@@ -707,11 +753,11 @@ void set_ansi_style_properties(
             }
             break;
         case 49: // Default background color
-            bg->color_type = COLOR_TYPE_16;
+            bg->color_type = COLOR_TYPE_DEFAULT_BG;
             bg->fg_or_bg = ANSI_BG;
-            bg->is_base_color = true;
-            bg->base_color = 0;
-            bg->rgb = palette->base[0];
+            bg->is_base_color = false;
+            bg->base_color = -1;
+            bg->rgb = palette->default_bg;
             DEBUG(
                 "49 -> Default background color -> bg RGB %02X%02X%02X\n",
                 bg->rgb.red, bg->rgb.green, bg->rgb.blue
@@ -757,7 +803,7 @@ void set_ansi_style_properties(
             fg->fg_or_bg = ANSI_FG;
             fg->is_base_color = true;
             fg->base_color = sgr[i] - 90 + 8;
-            ansi16_to_rgb(sgr[i] - 60, palette, &fg->rgb);
+            ansi16_to_rgb(sgr[i], palette, &fg->rgb);
             DEBUG(
                 "%d -> Foreground color -> fg RGB %02X%02X%02X\n", sgr[i],
                 fg->rgb.red, fg->rgb.green, fg->rgb.blue
@@ -775,7 +821,7 @@ void set_ansi_style_properties(
             bg->fg_or_bg = ANSI_BG;
             bg->is_base_color = true;
             bg->base_color = sgr[i] - 100 + 8;
-            ansi16_to_rgb(sgr[i] - 100, palette, &bg->rgb);
+            ansi16_to_rgb(sgr[i], palette, &bg->rgb);
             DEBUG(
                 "%d -> Background color -> bg RGB %02X%02X%02X\n", sgr[i],
                 bg->rgb.red, bg->rgb.green, bg->rgb.blue
@@ -789,19 +835,88 @@ void set_ansi_style_properties(
     DEBUG("Done for set_ansi_style_properties[%zu]\n", len);
 }
 
-static void styles_for_props(
+struct style_or_class
+{
+    char *style;
+    size_t style_len;
+    char *class;
+    size_t class_len;
+};
+static struct style_or_class style_bold = {"font-weight:bold;", 17, "bold", 4};
+static struct style_or_class style_faint = {"opacity:0.67;", 13, "faint", 5};
+static struct style_or_class style_italic = {
+    "font-style:italic;", 18, "italic", 6
+};
+static struct style_or_class style_double_underline = {
+    "border-bottom:3px double;", 25, "double-underline", 16
+};
+static struct style_or_class style_underline = {
+    "text-decoration:underline;", 26, "underline", 9
+};
+static struct style_or_class style_slow_blink = {
+    "text-decoration:blink;", 22, "slow-blink", 10
+};
+static struct style_or_class style_fast_blink = {
+    "text-decoration:blink;", 22, "fast-blink", 10
+};
+static struct style_or_class style_crossout = {
+    "text-decoration:line-through;", 29, "crossout", 8
+};
+static struct style_or_class style_fraktur = {
+    "font-family:fraktur;", 20, "fraktur", 7
+};
+static struct style_or_class style_frame = {
+    "border:1px solid;", 17, "frame", 5
+};
+static struct style_or_class style_circle = {
+    "border:1px solid;border-radius:50%;", 35, "circle", 6
+};
+static struct style_or_class style_overline = {
+    "text-decoration:overline;", 25, "overline", 8
+};
+
+void show_additional_styles(void)
+{
+#define PUTS_STYLE_OR_CLASS(s)                                                 \
+    do                                                                         \
+    {                                                                          \
+        PUTS(".ansi2html .");                                                  \
+        PUTS(s.class);                                                         \
+        PUTC('{');                                                             \
+        PUTS(s.style);                                                         \
+        PUTC('}');                                                             \
+    } while (0)
+    PUTS_STYLE_OR_CLASS(style_bold);
+    PUTS_STYLE_OR_CLASS(style_faint);
+    PUTS_STYLE_OR_CLASS(style_italic);
+    PUTS_STYLE_OR_CLASS(style_double_underline);
+    PUTS_STYLE_OR_CLASS(style_underline);
+    PUTS_STYLE_OR_CLASS(style_slow_blink);
+    PUTS_STYLE_OR_CLASS(style_fast_blink);
+    PUTS_STYLE_OR_CLASS(style_crossout);
+    PUTS_STYLE_OR_CLASS(style_fraktur);
+    PUTS_STYLE_OR_CLASS(style_frame);
+    PUTS_STYLE_OR_CLASS(style_circle);
+    PUTS_STYLE_OR_CLASS(style_overline);
+#undef PUTS_STYLE_OR_CLASS
+}
+
+static inline void styles_for_props(
     struct ansi_style *s, struct ansi_style_properties *props,
-    struct ansi_color_palette *palette, char *style, char *classes,
-    bool use_classes
+    struct ansi_color_palette *palette, char *style, size_t *style_len,
+    char *classes, size_t *class_len, bool use_classes
 )
 {
-    if (!s || !props || !palette || !style || !classes)
+    if (!s || !props || !palette || !style || !classes || !style_len ||
+        !class_len)
         return;
     char *ps = style;
     *ps = '\0';
+    size_t slen = 0;
     char *pc = classes;
     *pc = '\0';
-#define ADD_STYLE(cond, style_contents, class_name)                            \
+    size_t clen = 0;
+#define ADD_STYLE(cond, spec)                                                  \
     if (cond)                                                                  \
     {                                                                          \
         if (use_classes)                                                       \
@@ -810,34 +925,43 @@ static void styles_for_props(
             {                                                                  \
                 *pc++ = ' ';                                                   \
                 *pc = '\0';                                                    \
+                clen++;                                                        \
             }                                                                  \
-            pc = stpcpy(pc, class_name);                                       \
+            for (size_t i = 0; i < spec.class_len; i++)                        \
+                *pc++ = spec.class[i];                                         \
+            *pc = '\0';                                                        \
+            clen += spec.class_len;                                            \
         }                                                                      \
-        else if (style_contents[0])                                            \
-            ps = stpcpy(ps, style_contents);                                   \
+        else                                                                   \
+        {                                                                      \
+            for (size_t i = 0; i < spec.style_len; i++)                        \
+                *ps++ = spec.style[i];                                         \
+            *ps = '\0';                                                        \
+            slen += spec.style_len;                                            \
+        }                                                                      \
     }
     if (props->bold)
     {
-        ADD_STYLE(true, (s->bold_is_bright ? "" : "font-weight:bold;"), "bold");
+        if (!s->bold_is_bright || (s->color_foreground.is_base_color &&
+                                   s->color_foreground.base_color >= 8))
+            ADD_STYLE(true, style_bold);
     }
     else if (props->faint)
     {
-        ADD_STYLE(true, "opacity:0.67;", "faint");
+        ADD_STYLE(true, style_faint);
     }
-    ADD_STYLE(props->italic, "font-style:italic;", "italic");
-    ADD_STYLE(
-        props->double_underline,
-        "text-decoration:underline;border-bottom:3px double;",
-        "double-underline"
-    );
-    ADD_STYLE(props->underline, "text-decoration:underline;", "underline");
-    ADD_STYLE(props->slow_blink, "text-decoration:blink;", "slow-blink");
-    ADD_STYLE(props->fast_blink, "text-decoration:blink;", "fast-blink");
-    ADD_STYLE(props->crossout, "text-decoration:line-through;", "crossout");
-    ADD_STYLE(props->fraktur, "font-family:fraktur;", "fraktur");
-    ADD_STYLE(props->frame, "border:1px solid;", "frame");
-    ADD_STYLE(props->circle, "border:1px solid;border-radius:50%;", "circle");
-    ADD_STYLE(props->overline, "text-decoration:overline;", "overline");
+    ADD_STYLE(props->italic, style_italic);
+    ADD_STYLE(props->double_underline, style_double_underline);
+    ADD_STYLE(props->underline, style_underline);
+    ADD_STYLE(props->slow_blink, style_slow_blink);
+    ADD_STYLE(props->fast_blink, style_fast_blink);
+    ADD_STYLE(props->crossout, style_crossout);
+    ADD_STYLE(props->fraktur, style_fraktur);
+    ADD_STYLE(props->frame, style_frame);
+    ADD_STYLE(props->circle, style_circle);
+    ADD_STYLE(props->overline, style_overline);
+    *style_len = slen;
+    *class_len = clen;
 #undef ADD_STYLE
     (void)ps;
     (void)pc;
@@ -852,85 +976,184 @@ char *ansi_span_start(
     struct ansi_style_properties *props = &s->style_properties;
     struct ansi_color *fg = &s->color_foreground;
     struct ansi_color *bg = &s->color_background;
-    char classes[512] = {0};
-    char styles[512] = {0};
-    styles_for_props(s, props, palette, styles, classes, use_classes);
-    char *pc = classes + strlen(classes);
-    char *ps = styles + strlen(styles);
-    // RGB hex for color "7" in the palette for foreground should result in
-    // nothing at all.
-    if (fg->color_type == COLOR_TYPE_16 &&
-        fg->rgb.red == palette->base[7].red &&
-        fg->rgb.green == palette->base[7].green &&
-        fg->rgb.blue == palette->base[7].blue)
+    if (props->reverse)
+    {
+        fg = &s->color_background;
+        bg = &s->color_foreground;
+    }
+    static char classes[512];
+    static char styles[512];
+    classes[0] = '\0';
+    styles[0] = '\0';
+    size_t style_len = 0;
+    size_t class_len = 0;
+    styles_for_props(
+        s, props, palette, styles, &style_len, classes, &class_len, use_classes
+    );
+    char *pc = classes + class_len;
+    char *ps = styles + style_len;
+    // RGB hex for "default foreground" color in the palette for foreground
+    // should result in nothing at all. Also, if the current foreground color
+    // Just So Happens to have the same RGB as the default foreground color.
+    if (fg->color_type == COLOR_TYPE_DEFAULT_FG ||
+        (fg->rgb.red == palette->default_fg.red &&
+         fg->rgb.green == palette->default_fg.green &&
+         fg->rgb.blue == palette->default_fg.blue))
         ;
     else if (use_classes && (fg->color_type == COLOR_TYPE_16 ||
                              fg->color_type == COLOR_TYPE_256))
     {
-        char this_class[64] = {0};
-        (void)snprintf(
-            this_class, 64, "%s-%d", props->reverse ? "bg" : "fg",
-            fg->base_color
-        );
         if (pc != classes)
         {
             *pc++ = ' ';
             *pc = '\0';
         }
-        pc = stpcpy(pc, this_class);
+        char this_class[8] = {'f', 'g', '-', '\0', '\0', '\0', '\0'};
+        unsigned char this_color = fg->base_color;
+        if (s->bold_is_bright && props->bold && fg->is_base_color &&
+            fg->base_color < 8)
+            this_color += 8;
+        if (this_color < 10)
+        {
+            this_class[3] = (char)('0' + this_color);
+            (void)memcpy(pc, this_class, 4);
+            pc += 4;
+        }
+        else if (this_color < 100)
+        {
+            this_class[3] = (char)('0' + (this_color / 10));
+            this_class[4] = (char)('0' + (this_color % 10));
+            (void)memcpy(pc, this_class, 5);
+            pc += 5;
+        }
+        else
+        {
+            this_class[3] = (char)('0' + (this_color / 100));
+            this_class[4] = (char)('0' + ((this_color / 10) % 10));
+            this_class[5] = (char)('0' + (this_color % 10));
+            memcpy(pc, this_class, 6);
+            pc += 6;
+        }
+        *pc = '\0';
     }
     else
     {
-        char this_style[64] = {0};
-        (void)snprintf(
-            this_style, 64, "%scolor:#%02X%02X%02X;",
-            props->reverse ? "background-" : "", fg->rgb.red, fg->rgb.green,
-            fg->rgb.blue
-        );
-        ps = stpcpy(ps, this_style);
+        //                      012345678901234
+        char this_style[16] = {"color:#000000;"};
+        // Given a number 0-15, convert it to a 1-digit hex number and put it
+        // in the right place in the string.
+#define N2HEX(n, start)                                                        \
+    do                                                                         \
+    {                                                                          \
+        if ((n) < 10)                                                          \
+            *(start) = (char)('0' + (n));                                      \
+        else                                                                   \
+            *(start) = (char)('A' + (n - 10));                                 \
+    } while (0)
+#define COLOR2HEX(color, start)                                                \
+    do                                                                         \
+    {                                                                          \
+        char *pstart = start;                                                  \
+        N2HEX((color).red / 16, pstart);                                       \
+        N2HEX((color).red % 16, pstart + 1);                                   \
+        N2HEX((color).green / 16, pstart + 2);                                 \
+        N2HEX((color).green % 16, pstart + 3);                                 \
+        N2HEX((color).blue / 16, pstart + 4);                                  \
+        N2HEX((color).blue % 16, pstart + 5);                                  \
+    } while (0)
+        struct ansi_rgb rgb = fg->rgb;
+        if (s->bold_is_bright && props->bold && fg->is_base_color &&
+            fg->base_color < 8)
+            rgb = palette->bright[fg->base_color];
+        COLOR2HEX(rgb, this_style + 7);
+        (void)memcpy(ps, this_style, 14);
+        ps += 14;
+        *ps = '\0';
     }
     // Same for background:
-    if (bg->color_type == COLOR_TYPE_16 &&
-        bg->rgb.red == palette->base[0].red &&
-        bg->rgb.green == palette->base[0].green &&
-        bg->rgb.blue == palette->base[0].blue)
+    if (bg->color_type == COLOR_TYPE_DEFAULT_BG ||
+        (bg->rgb.red == palette->default_bg.red &&
+         bg->rgb.green == palette->default_bg.green &&
+         bg->rgb.blue == palette->default_bg.blue))
         ;
     else if (use_classes && (bg->color_type == COLOR_TYPE_16 ||
                              bg->color_type == COLOR_TYPE_256))
     {
-        char this_class[64] = {0};
-        (void)snprintf(
-            this_class, 64, "%s-%d", props->reverse ? "fg" : "bg",
-            bg->base_color
-        );
         if (pc != classes)
         {
             *pc++ = ' ';
             *pc = '\0';
         }
-        pc = stpcpy(pc, this_class);
+        char this_class[8] = {'b', 'g', '-', '\0', '\0', '\0', '\0'};
+        unsigned char this_color = bg->base_color;
+        if (this_color < 10)
+        {
+            this_class[3] = (char)('0' + this_color);
+            (void)memcpy(pc, this_class, 4);
+            pc += 4;
+        }
+        else if (this_color < 100)
+        {
+            this_class[3] = (char)('0' + (this_color / 10));
+            this_class[4] = (char)('0' + (this_color % 10));
+            (void)memcpy(pc, this_class, 5);
+            pc += 5;
+        }
+        else
+        {
+            this_class[3] = (char)('0' + (this_color / 100));
+            this_class[4] = (char)('0' + ((this_color / 10) % 10));
+            this_class[5] = (char)('0' + (this_color % 10));
+            (void)memcpy(pc, this_class, 6);
+            pc += 6;
+        }
+        *pc = '\0';
     }
     else
     {
-        char this_style[64] = {0};
-        (void)snprintf(
-            this_style, 64, "%scolor:#%02X%02X%02X;",
-            props->reverse ? "" : "background-", bg->rgb.red, bg->rgb.green,
-            bg->rgb.blue
-        );
-        ps = stpcpy(ps, this_style);
+        //                      01234567890123456789012345
+        char this_style[32] = {"background-color:#000000;"};
+        COLOR2HEX(bg->rgb, this_style + 18);
+        (void)memcpy(ps, this_style, 25);
+        ps += 25;
+        *ps = '\0';
     }
+#undef N2HEX
+#undef COLOR2HEX
     if (!classes[0] && !styles[0])
         return NULL;
     (void)ps;
     (void)pc;
     static char span_start[1024] = {0};
-    (void)snprintf(
-        span_start, 1024, "<span %s%s%s%s%s%s%s>", classes[0] ? "class=\"" : "",
-        classes[0] ? classes : "", classes[0] ? "\"" : "",
-        classes[0] && styles[0] ? " " : "", styles[0] ? "style=\"" : "",
-        styles[0] ? styles : "", styles[0] ? "\"" : ""
-    );
+    char *p = span_start;
+    (void)memcpy(p, "<span ", 6);
+    p += 6;
+    *p = '\0';
+    if (classes[0])
+    {
+        (void)memcpy(p, "class=\"", 7);
+        p += 7;
+        *p = '\0';
+        p = stpcpy(p, classes);
+        *p++ = '"';
+        *p = '\0';
+    }
+    if (classes[0] && styles[0])
+    {
+        *p++ = ' ';
+        *p = '\0';
+    }
+    if (styles[0])
+    {
+        (void)memcpy(p, "style=\"", 7);
+        p += 7;
+        *p = '\0';
+        p = stpcpy(p, styles);
+        *p++ = '"';
+        *p = '\0';
+    }
+    *p++ = '>';
+    *p = '\0';
     return span_start;
 }
 
@@ -939,10 +1162,14 @@ void reset_ansi_props(struct ansi_style *s, struct ansi_color_palette *palette)
     if (!s || !palette)
         return;
     s->style_properties = (struct ansi_style_properties){0};
-    s->color_foreground.color_type = COLOR_TYPE_16;
+    s->color_foreground.color_type = COLOR_TYPE_DEFAULT_FG;
+    s->color_foreground.is_base_color = false;
+    s->color_foreground.base_color = -1;
     s->color_foreground.fg_or_bg = ANSI_FG;
-    s->color_foreground.rgb = palette->base[7];
-    s->color_background.color_type = COLOR_TYPE_16;
+    s->color_foreground.rgb = palette->default_fg;
+    s->color_background.color_type = COLOR_TYPE_DEFAULT_BG;
+    s->color_background.is_base_color = false;
+    s->color_background.base_color = -1;
     s->color_background.fg_or_bg = ANSI_BG;
-    s->color_background.rgb = palette->base[0];
+    s->color_background.rgb = palette->default_bg;
 }
