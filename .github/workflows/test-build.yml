@@ -18,7 +18,7 @@ jobs:
         timeout-minutes: 10
         run: |
           apt-get -qq update
-          apt-get -qq install -y build-essential
+          apt-get -qq install -y build-essential perl
       - name: attempt compilation w/o asan
         timeout-minutes: 2
         run: |
@@ -28,10 +28,6 @@ jobs:
         run: |
           make clean
           make -B ansi2html
-      - name: run tests
-        timeout-minutes: 1
-        run: |
-          make run-tests
       - name: test minimal conversion
         timeout-minutes: 1
         run: |
@@ -39,6 +35,10 @@ jobs:
           echo
           printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html -b -p vga
           echo
+      - name: run tests
+        timeout-minutes: 1
+        run: |
+          make run-tests
   build-static:
     runs-on: ubuntu-latest
     container: alpine:latest
@@ -47,18 +47,39 @@ jobs:
       - name: install prerequisites
         timeout-minutes: 10
         run: |
-          apk add --no-cache clang musl-dev binutils xz nodejs
-      - name: static compilation with clang/musl
+          apk add --no-cache clang musl-dev binutils xz nodejs bash perl perl-utils
+      - name: static compilation [no iTerm2 palettes] with clang/musl
         timeout-minutes: 2
         run: |
-          clang -O2 -o ansi2html -static -Wl,-strip-all -Wl,-static src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c
-      - name: test minimal conversion
+          clang -O2 -o ansi2html-noi2 -flto -static -Wl,-strip-all -Wl,-static src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c
+      - name: static compilation [with iTerm2 palettes] with clang/musl
+        timeout-minutes: 2
+        run: |
+          clang -O2 -DITERM2_COLOR_SCHEMES -o ansi2html -flto -static -Wl,-strip-all -Wl,-static src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c src/iterm2_color_schemes/ansi_color_palette.c
+      - name: test minimal conversion [no iTerm2 palettes]
         timeout-minutes: 1
         run: |
-          printf '\e[0;31mred\e[0;1;31mbold red\e[0m' | ./ansi2html -p vga
+          printf '\e[0;31mred\e[0;1;31mbold red\e[0m' | ./ansi2html-noi2 -p vga
           echo
-          printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html -b -p vga
+          printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html-noi2 -b -p vga
           echo
-      - name: compress binary
+      - name: test minimal conversion [with iTerm2 palettes]
         timeout-minutes: 1
-        run: xz --compress --stdout ansi2html > ansi2html.xz
+        run: |
+          printf '\e[0;31mred\e[0;1;31mbold red\e[0m' | ./ansi2html -p i2_laser
+          echo
+          printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html -b -p i2_laser
+          echo
+      - name: run tests [with iTerm2 palettes]
+        timeout-minutes: 1
+        run: |
+          prove -v tests/*.sh
+      - name: compress binaries
+        timeout-minutes: 1
+        run: |
+          xz --compress --stdout ansi2html > ansi2html.xz
+          xz --compress --stdout ansi2html-noi2 > ansi2html-noi2.xz
+      - name: show sizes
+        timeout-minutes: 1
+        run: |
+          ls -laS ansi2html*

@@ -4,7 +4,9 @@ SHELL = /bin/bash
 
 CC = gcc
 
-C_FLAGS = -O2 -D_GNU_SOURCE -ggdb3 -march=native -Wall -Wextra -Werror -Wformat-security -Wshadow -Wredundant-decls
+DEFINES = -DITERM2_COLOR_SCHEMES
+
+C_FLAGS = -O2 -D_GNU_SOURCE -flto -ggdb3 -march=native -Wall -Wextra -Werror -Wformat-security -Wshadow -Wredundant-decls
 ifeq (,$(findstring ++,$(CC)))
 	C_FLAGS += -std=c2x -Wstrict-prototypes -Wold-style-definition -Wnested-externs
 else
@@ -50,16 +52,16 @@ ifneq (,$(NO_ASAN))
 endif
 
 C_FILES = \
-src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c
+src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/iterm2_color_schemes/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c
 H_FILES = \
-src/ansi2html.h src/structs/ansi_color.h src/structs/ansi_color_palette.h src/structs/ansi_color_type.h src/structs/ansi_fg_or_bg.h src/structs/ansi_rgb.h src/structs/ansi_style.h src/structs/ansi_style_properties.h
+src/ansi2html.h src/structs/ansi_color.h src/structs/ansi_color_palette.h src/iterm2_color_schemes/ansi_color_palette.h src/iterm2_color_schemes/named_palettes.h src/structs/ansi_color_type.h src/structs/ansi_fg_or_bg.h src/structs/ansi_rgb.h src/structs/ansi_style.h src/structs/ansi_style_properties.h
 
 # This comes first so one can just "make" and just make the executable.
 # I'll just go do "make all" instead.
 ansi2html: Makefile $(C_FILES) $(H_FILES)
 	@rm -f $@
 	@start=$$(perl -MTime::HiRes=gettimeofday -E'say scalar gettimeofday')
-	$(CC) $(C_FLAGS) $(L_FLAGS) $(ADD_L_FLAGS) -o $@ $(C_FILES)
+	$(CC) $(DEFINES) $(C_FLAGS) $(L_FLAGS) $(ADD_L_FLAGS) -o $@ $(C_FILES)
 	@end=$$(perl -MTime::HiRes=gettimeofday -E'say scalar gettimeofday')
 	@perl -E'say sprintf "Build  time: %.4f seconds", $$ARGV[1] - $$ARGV[0]' "$$start" "$$end"
 
@@ -82,18 +84,8 @@ tags: Makefile $(C_FILES) $(H_FILES)
 
 .PHONY: clean
 clean:
-	rm -f ansi2html ansi2html-static tags
-
-ansi2html-static: Makefile $(C_FILES) $(H_FILES)
-	@rm -f $@
-	@start=$$(perl -MTime::HiRes=gettimeofday -E'say scalar gettimeofday')
-	$(CC) -static $(C_FLAGS) $(L_FLAGS) $(ADD_L_FLAGS) -o $@ $(C_FILES)
-	@end=$$(perl -MTime::HiRes=gettimeofday -E'say scalar gettimeofday')
-	@perl -E'say sprintf "Build  time: %.4f seconds", $$ARGV[1] - $$ARGV[0]' "$$start" "$$end"
+	rm -f ansi2html tags
 
 .PHONY: run-tests
 run-tests:
-	@for f in tests/*.sh; do
-		echo "Running $$f"
-		./$$f
-	done
+	@prove -v tests/*.sh
