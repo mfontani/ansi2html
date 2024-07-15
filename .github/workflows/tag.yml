@@ -41,20 +41,20 @@ jobs:
       - name: compress binaries
         timeout-minutes: 1
         run: |
-          xz --compress --stdout ansi2html > ansi2html-x64.xz
-          xz --compress --stdout ansi2html-noi2 > ansi2html-noi2-x64.xz
+          xz --compress --stdout ansi2html > ansi2html-x86_64.xz
+          xz --compress --stdout ansi2html-noi2 > ansi2html-noi2-x86_64.xz
       - name: show sizes
         timeout-minutes: 1
         run: |
           ls -laS ansi2html*
       - uses: actions/upload-artifact@master
         with:
-          name: ansi2html-x64.xz
-          path: ansi2html-x64.xz
+          name: ansi2html-x86_64.xz
+          path: ansi2html-x86_64.xz
       - uses: actions/upload-artifact@master
         with:
-          name: ansi2html-noi2-x64.xz
-          path: ansi2html-noi2-x64.xz
+          name: ansi2html-noi2-x86_64.xz
+          path: ansi2html-noi2-x86_64.xz
 
   release:
     needs: [build]
@@ -74,7 +74,7 @@ jobs:
     needs: [release]
     strategy:
       matrix:
-        file: ['ansi2html-x64.xz', 'ansi2html-noi2-x64.xz']
+        file: ['ansi2html-x86_64.xz', 'ansi2html-noi2-x86_64.xz']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@master
