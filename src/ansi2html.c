@@ -1135,7 +1135,9 @@ char *ansi_span_start(
         (void)memcpy(p, "class=\"", 7);
         p += 7;
         *p = '\0';
-        p = stpcpy(p, classes);
+        size_t len = strlen(classes);
+        (void)memcpy(p, classes, len);
+        p += len;
         *p++ = '"';
         *p = '\0';
     }
@@ -1149,7 +1151,9 @@ char *ansi_span_start(
         (void)memcpy(p, "style=\"", 7);
         p += 7;
         *p = '\0';
-        p = stpcpy(p, styles);
+        size_t len = strlen(styles);
+        (void)memcpy(p, styles, len);
+        p += len;
         *p++ = '"';
         *p = '\0';
     }
