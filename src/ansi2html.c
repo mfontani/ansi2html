@@ -942,8 +942,9 @@ static inline void styles_for_props(
     }
     if (props->bold)
     {
-        if (!s->bold_is_bright || (s->color_foreground.is_base_color &&
-                                   s->color_foreground.base_color >= 8))
+        struct ansi_color *fg =
+            props->reverse ? &s->color_background : &s->color_foreground;
+        if (!s->bold_is_bright || !fg->is_base_color || fg->base_color >= 8)
             ADD_STYLE(true, style_bold);
     }
     else if (props->faint)
@@ -1134,7 +1135,9 @@ char *ansi_span_start(
         (void)memcpy(p, "class=\"", 7);
         p += 7;
         *p = '\0';
-        p = stpcpy(p, classes);
+        size_t len = strlen(classes);
+        (void)memcpy(p, classes, len);
+        p += len;
         *p++ = '"';
         *p = '\0';
     }
@@ -1148,7 +1151,9 @@ char *ansi_span_start(
         (void)memcpy(p, "style=\"", 7);
         p += 7;
         *p = '\0';
-        p = stpcpy(p, styles);
+        size_t len = strlen(styles);
+        (void)memcpy(p, styles, len);
+        p += len;
         *p++ = '"';
         *p = '\0';
     }

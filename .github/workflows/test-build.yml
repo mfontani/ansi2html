@@ -47,7 +47,7 @@ jobs:
       - name: install prerequisites
         timeout-minutes: 10
         run: |
-          apk add --no-cache clang musl-dev binutils xz nodejs bash perl perl-utils
+          apk add --no-cache clang musl-dev binutils xz nodejs bash perl perl-utils mingw-w64-gcc
       - name: static compilation [no iTerm2 palettes] with clang/musl
         timeout-minutes: 2
         run: |
@@ -74,11 +74,21 @@ jobs:
         timeout-minutes: 1
         run: |
           prove -v tests/*.sh
+      - name: static compilation [no iTerm2 palettes] with mingw32-w64
+        timeout-minutes: 2
+        run: |
+          x86_64-w64-mingw32-cc -O2 -flto -o ansi2html-noi2.exe -static -Wl,-strip-all -Wl,-static src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c
+      - name: static compilation [with iTerm2 palettes] with mingw32-w64
+        timeout-minutes: 2
+        run: |
+          x86_64-w64-mingw32-cc -O2 -DITERM2_COLOR_SCHEMES -flto -o ansi2html.exe -static -Wl,-strip-all -Wl,-static src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c src/iterm2_color_schemes/ansi_color_palette.c
       - name: compress binaries
         timeout-minutes: 1
         run: |
           xz --compress --stdout ansi2html > ansi2html-Linux-x86_64-musl.xz
           xz --compress --stdout ansi2html-noi2 > ansi2html-noi2-Linux-x86_64-musl.xz
+          xz --compress --stdout ansi2html-noi2.exe > ansi2html-noi2-Windows-x86_64-mingw32.xz
+          xz --compress --stdout ansi2html.exe > ansi2html-Windows-x86_64-mingw32.xz
       - name: show sizes
         timeout-minutes: 1
         run: |

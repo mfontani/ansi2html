@@ -15,7 +15,7 @@ jobs:
       - name: install prerequisites
         timeout-minutes: 10
         run: |
-          apk add --no-cache clang musl-dev binutils xz nodejs
+          apk add --no-cache clang musl-dev binutils xz nodejs mingw-w64-gcc
       - name: static compilation with clang/musl [no iTerm2 palettes]
         timeout-minutes: 2
         run: |
@@ -38,11 +38,21 @@ jobs:
           echo
           printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html -b -p i2_laser
           echo
+      - name: static compilation [no iTerm2 palettes] with mingw32-w64
+        timeout-minutes: 2
+        run: |
+          x86_64-w64-mingw32-cc -O2 -flto -o ansi2html-noi2.exe -static -Wl,-strip-all -Wl,-static src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c
+      - name: static compilation [with iTerm2 palettes] with mingw32-w64
+        timeout-minutes: 2
+        run: |
+          x86_64-w64-mingw32-cc -O2 -DITERM2_COLOR_SCHEMES -flto -o ansi2html.exe -static -Wl,-strip-all -Wl,-static src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c src/iterm2_color_schemes/ansi_color_palette.c
       - name: compress binaries
         timeout-minutes: 1
         run: |
           xz --compress --stdout ansi2html > ansi2html-Linux-x86_64-musl.xz
           xz --compress --stdout ansi2html-noi2 > ansi2html-noi2-Linux-x86_64-musl.xz
+          xz --compress --stdout ansi2html-noi2.exe > ansi2html-noi2-Windows-x86_64-mingw32.xz
+          xz --compress --stdout ansi2html.exe > ansi2html-Windows-x86_64-mingw32.xz
       - name: show sizes
         timeout-minutes: 1
         run: |
@@ -55,6 +65,22 @@ jobs:
         with:
           name: ansi2html-noi2-Linux-x86_64-musl.xz
           path: ansi2html-noi2-Linux-x86_64-musl.xz
+      - uses: actions/upload-artifact@master
+        with:
+          name: ansi2html-noi2-Windows-x86_64-mingw32.xz
+          path: ansi2html-noi2-Windows-x86_64-mingw32.xz
+      - uses: actions/upload-artifact@master
+        with:
+          name: ansi2html-Windows-x86_64-mingw32.xz
+          path: ansi2html-Windows-x86_64-mingw32.xz
+      - uses: actions/upload-artifact@master
+        with:
+          name: ansi2html-noi2.exe
+          path: ansi2html-noi2.exe
+      - uses: actions/upload-artifact@master
+        with:
+          name: ansi2html.exe
+          path: ansi2html.exe
 
   release:
     needs: [build]
@@ -74,7 +100,7 @@ jobs:
     needs: [release]
     strategy:
       matrix:
-        file: ['ansi2html-Linux-x86_64-musl.xz', 'ansi2html-noi2-Linux-x86_64-musl.xz']
+        file: ['ansi2html-Linux-x86_64-musl.xz', 'ansi2html-noi2-Linux-x86_64-musl.xz', 'ansi2html-noi2-Windows-x86_64-mingw32.xz', 'ansi2html-Windows-x86_64-mingw32.xz', 'ansi2html-noi2.exe', 'ansi2html.exe']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@master
