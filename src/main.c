@@ -418,9 +418,7 @@ int main(int argc, char *argv[])
     while ((c = GETCHAR()) != EOF)
     {
         read++;
-        unsigned char sgr_chars[256];
         size_t sgr_chars_len = 0;
-        unsigned char current_sgr[128];
         size_t current_sgr_len = 0;
         unsigned char sgrs[128];
         size_t sgrs_len = 0;
@@ -452,22 +450,17 @@ int main(int argc, char *argv[])
                 break;
             }
             // We have an escape sequence. Read until 'm':
-            sgr_chars[0] = '\0';
             sgr_chars_len = 0;
             size_t begun_at = read;
             while ((c = GETCHAR()) != EOF)
             {
                 read++;
+                sgr_chars_len++;
                 if (c == 'm')
                 {
                     // We have the end of the SGR sequence.
-                    // sgr_chars[sgr_chars_len] = '\0';
-                    // "convert" the last number:
                     if (current_sgr_len > 0)
                     {
-                        current_sgr[current_sgr_len] = '\0';
-                        current_sgr_value =
-                            strtol((char *)current_sgr, NULL, 10);
                         if (current_sgr_value >= 0 && current_sgr_value <= 255)
                         {
                             unsigned char sgr_value =
@@ -498,56 +491,56 @@ int main(int argc, char *argv[])
                     }
                     break;
                 }
-                if (sgr_chars_len < sizeof(sgr_chars) - 1)
+                // The character should be a digit, or semicolon.
+                if (c >= '0' && c <= '9')
                 {
-                    // The character should be a digit, or semicolon.
-                    if (c >= '0' && c <= '9')
-                        current_sgr[current_sgr_len++] = (unsigned char)c;
-                    else if (c == ';')
+                    long prev = current_sgr_value;
+                    current_sgr_value *= 10;
+                    current_sgr_value += c - '0';
+                    if (prev > current_sgr_value)
                     {
-                        current_sgr[current_sgr_len] = '\0';
-                        current_sgr_value =
-                            strtol((char *)current_sgr, NULL, 10);
-                        if (current_sgr_value >= 0 && current_sgr_value <= 255)
-                        {
-                            unsigned char sgr_value =
-                                (unsigned char)current_sgr_value;
-                            if (sgrs_len < sizeof(sgrs) - 1)
-                                sgrs[sgrs_len++] = sgr_value;
-                            else
-                            {
-                                (void)fprintf(
-                                    stderr,
-                                    "Error: SGR sequence too long, at %zu "
-                                    "characters read / %zu in SGR sequence "
-                                    "which begun at %zu characters read.\n",
-                                    read, sgr_chars_len, begun_at
-                                );
-                                exit(1);
-                            }
-                            current_sgr_len = 0;
-                        }
+                        (void)fprintf(
+                            stderr,
+                            "Error: SGR sequence contains invalid number '%ld' "
+                            "at %zu characters read / %zu in SGR sequence "
+                            "which begun at %zu characters read.\n",
+                            current_sgr_value, read, sgr_chars_len, begun_at
+                        );
+                        exit(1);
+                    }
+                    current_sgr_len++;
+                }
+                else if (c == ';')
+                {
+                    if (current_sgr_value >= 0 && current_sgr_value <= 255)
+                    {
+                        unsigned char sgr_value =
+                            (unsigned char)current_sgr_value;
+                        if (sgrs_len < sizeof(sgrs) - 1)
+                            sgrs[sgrs_len++] = sgr_value;
                         else
                         {
                             (void)fprintf(
                                 stderr,
-                                "Error: SGR sequence contains invalid number "
-                                "'%ld' at %zu characters read / %zu in SGR "
-                                "sequence which begun at %zu characters "
-                                "read.\n",
-                                current_sgr_value, read, sgr_chars_len, begun_at
+                                "Error: SGR sequence too long, at %zu "
+                                "characters read / %zu in SGR sequence "
+                                "which begun at %zu characters read.\n",
+                                read, sgr_chars_len, begun_at
                             );
                             exit(1);
                         }
+                        current_sgr_len = 0;
+                        current_sgr_value = 0;
                     }
                     else
                     {
                         (void)fprintf(
                             stderr,
-                            "Error: SGR sequence contains invalid character "
-                            "'%c' at %zu characters read / %zu in SGR sequence "
-                            "which begun at %zu characters read.\n",
-                            c, read, sgr_chars_len, begun_at
+                            "Error: SGR sequence contains invalid number "
+                            "'%ld' at %zu characters read / %zu in SGR "
+                            "sequence which begun at %zu characters "
+                            "read.\n",
+                            current_sgr_value, read, sgr_chars_len, begun_at
                         );
                         exit(1);
                     }
@@ -556,10 +549,10 @@ int main(int argc, char *argv[])
                 {
                     (void)fprintf(
                         stderr,
-                        "Error: SGR sequence too long, at %zu characters read "
-                        "/ %zu in SGR sequence which begun at %zu characters "
-                        "read.\n",
-                        read, sgr_chars_len, begun_at
+                        "Error: SGR sequence contains invalid character "
+                        "'%c' at %zu characters read / %zu in SGR sequence "
+                        "which begun at %zu characters read.\n",
+                        c, read, sgr_chars_len, begun_at
                     );
                     exit(1);
                 }
