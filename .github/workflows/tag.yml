@@ -129,6 +129,10 @@ jobs:
         with:
           name: ansi2html-Darwin-${{matrix.arch}}.xz
           path: ansi2html-Darwin-${{matrix.arch}}.xz
+      - uses: actions/upload-artifact@master
+        with:
+          name: ansi2html-noi2-Darwin-${{matrix.arch}}.xz
+          path: ansi2html-noi2-Darwin-${{matrix.arch}}.xz
 
   release:
     needs: [build-linux, build-macos]
