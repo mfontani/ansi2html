@@ -10,7 +10,7 @@ There are two binary versions on the [releases page](https://github.com/mfontani
 
 You can download a pre-packaged binary from the
 [releases page](https://github.com/mfontani/ansi2html/releases),
-where binaries for both Linux and Windows are available,
+where binaries for both Linux, Windows, and MacOS x86_64 and arm64 are available,
 or use a tool such as [ubi](https://github.com/houseabsolute/ubi) to fetch it
 and install it to your local `$HOME/bin` (assuming it's in your `$PATH`, it'll
 Just Work®).
