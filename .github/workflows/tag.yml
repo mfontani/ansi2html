@@ -7,7 +7,7 @@ name: Release
 
 jobs:
 
-  build:
+  build-linux:
     runs-on: ubuntu-latest
     container: alpine:latest
     steps:
@@ -82,8 +82,55 @@ jobs:
           name: ansi2html.exe
           path: ansi2html.exe
 
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build and compress for ${{matrix.arch}} [no iTerm2 palettes]"
+        timeout-minutes: 2
+        run: |
+          clang -O2 -target ${{matrix.arch}}-apple-darwin -o ansi2html-noi2 -flto src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c
+      - name: "Test minimal conversion for ${{matrix.arch}} [no iTerm2 palettes]"
+        timeout-minutes: 1
+        run: |
+          printf '\e[0;31mred\e[0;1;31mbold red\e[0m' | ./ansi2html-noi2 -p vga
+          echo
+          printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html-noi2 -b -p vga
+          echo
+      - name: "Compress for ${{matrix.arch}} [no iTerm2 palettes]"
+        timeout-minutes: 1
+        run: |
+          xz --compress --stdout ansi2html-noi2 > ansi2html-noi2-Darwin-${{matrix.arch}}.xz
+          cp ansi2html-noi2 ansi2html-noi2-Darwin-${{matrix.arch}}
+      - name: "Build for ${{matrix.arch}} [with iTerm2 palettes]"
+        timeout-minutes: 2
+        run: |
+          clang -O2 -DITERM2_COLOR_SCHEMES -target ${{matrix.arch}}-apple-darwin -o ansi2html -flto src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c src/iterm2_color_schemes/ansi_color_palette.c
+      - name: "Test minimal conversion for ${{matrix.arch}} [with iTerm2 palettes]"
+        timeout-minutes: 1
+        run: |
+          printf '\e[0;31mred\e[0;1;31mbold red\e[0m' | ./ansi2html -p vga
+          echo
+          printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html -b -p vga
+          echo
+      - name: "Compress for ${{matrix.arch}} [with iTerm2 palettes]"
+        timeout-minutes: 1
+        run: |
+          xz --compress --stdout ansi2html > ansi2html-Darwin-${{matrix.arch}}.xz
+          cp ansi2html ansi2html-Darwin-${{matrix.arch}}
+      - name: show sizes
+        timeout-minutes: 1
+        run: |
+          ls -laS ansi2html*
+      - uses: actions/upload-artifact@master
+        with:
+          name: ansi2html-Darwin-${{matrix.arch}}.xz
+
   release:
-    needs: [build]
+    needs: [build-linux, build-macos]
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url}}
@@ -100,7 +147,7 @@ jobs:
     needs: [release]
     strategy:
       matrix:
-        file: ['ansi2html-Linux-x86_64-musl.xz', 'ansi2html-noi2-Linux-x86_64-musl.xz', 'ansi2html-noi2-Windows-x86_64-mingw32.xz', 'ansi2html-Windows-x86_64-mingw32.xz', 'ansi2html-noi2.exe', 'ansi2html.exe']
+        file: ['ansi2html-Linux-x86_64-musl.xz', 'ansi2html-noi2-Linux-x86_64-musl.xz', 'ansi2html-noi2-Windows-x86_64-mingw32.xz', 'ansi2html-Windows-x86_64-mingw32.xz', 'ansi2html-noi2.exe', 'ansi2html.exe', 'ansi2html-noi2-Darwin-x86_64.xz', 'ansi2html-Darwin-x86_64.xz', 'ansi2html-noi2-Darwin-arm64.xz', 'ansi2html-Darwin-arm64.xz']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@master
