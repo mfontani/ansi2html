@@ -46,18 +46,18 @@ want='<span class="fg-1">red</span><span class="fg-9">bold/bright red</span><spa
 got=$(printf '%s' "$str" | ./ansi2html -p vga -b --use-classes)
 str_eq_html "$str" "$want" "$got"
 
-# 256 colors 0-7 with "1;" with "-b" are treated as bright:
-str=$'\e[0;38;5;1mred\e[1mbright\e[0m'
-want='<span style="color:#AA0000;">red</span><span style="color:#FF5555;">bright</span>'
+# 256 colors 0-7 with "1;" with "-b" are NOT treated as bright:
+str=$'\e[0;38;5;1mred\e[1mbold dark red\e[0m'
+want='<span style="color:#AA0000;">red</span><span style="font-weight:bold;color:#AA0000;">bold dark red</span>'
 got=$(printf '%s' "$str" | ./ansi2html -p vga -b)
 str_eq_html "$str" "$want" "$got"
 
 # With classes:
-want='<span class="fg-1">red</span><span class="fg-9">bright</span>'
+want='<span class="fg-1">red</span><span class="bold fg-1">bold dark red</span>'
 got=$(printf '%s' "$str" | ./ansi2html -p vga -b --use-classes)
 str_eq_html "$str" "$want" "$got"
 
-# 256 colors 8-15 with "1;" with "-b" are instead _bold_:
+# 256 colors 8-15 with "1;" with "-b" are also _bold_:
 str=$'\e[0;38;5;9mred\e[1mbold\e[0m'
 want='<span style="color:#FF5555;">red</span><span style="font-weight:bold;color:#FF5555;">bold</span>'
 got=$(printf '%s' "$str" | ./ansi2html -p vga -b)

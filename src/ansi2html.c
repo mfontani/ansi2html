@@ -500,7 +500,7 @@ void set_ansi_style_properties(
             props->bold = true;
             if (style->bold_is_bright)
             {
-                if (fg->is_base_color)
+                if (fg->is_base_color && fg->color_type == COLOR_TYPE_16)
                 {
                     if (fg->base_color < 8)
                         fg->rgb = palette->bright[fg->base_color];
@@ -562,7 +562,7 @@ void set_ansi_style_properties(
             props->faint = false;
             if (style->bold_is_bright)
             {
-                if (fg->is_base_color)
+                if (fg->is_base_color && fg->color_type == COLOR_TYPE_16)
                 {
                     if (fg->base_color < 8)
                         fg->rgb = palette->base[fg->base_color];
@@ -944,7 +944,8 @@ static inline void styles_for_props(
     {
         struct ansi_color *fg =
             props->reverse ? &s->color_background : &s->color_foreground;
-        if (!s->bold_is_bright || !fg->is_base_color || fg->base_color >= 8)
+        if (!s->bold_is_bright || !fg->is_base_color ||
+            fg->color_type != COLOR_TYPE_16)
             ADD_STYLE(true, style_bold);
     }
     else if (props->faint)
@@ -1012,7 +1013,7 @@ char *ansi_span_start(
         char this_class[8] = {'f', 'g', '-', '\0', '\0', '\0', '\0'};
         unsigned char this_color = fg->base_color;
         if (s->bold_is_bright && props->bold && fg->is_base_color &&
-            fg->base_color < 8)
+            fg->base_color < 8 && fg->color_type == COLOR_TYPE_16)
             this_color += 8;
         if (this_color < 10)
         {
@@ -1064,7 +1065,7 @@ char *ansi_span_start(
     } while (0)
         struct ansi_rgb rgb = fg->rgb;
         if (s->bold_is_bright && props->bold && fg->is_base_color &&
-            fg->base_color < 8)
+            fg->base_color < 8 && fg->color_type == COLOR_TYPE_16)
             rgb = palette->bright[fg->base_color];
         COLOR2HEX(rgb, this_style + 7);
         (void)memcpy(ps, this_style, 14);
