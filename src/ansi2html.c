@@ -391,48 +391,77 @@ void showcase_palette(struct ansi_color_palette *palette)
             palette->bright[i].blue
         );
     }
+    // Show "it" using the "default foreground "on" default background for the
+    // parts in-between the colors.
+#define SHOWCASE_RESET() \
+    printf("\e[0;38;2;%d;%d;%d;48;2;%d;%d;%dm", \
+           palette->default_fg.red, palette->default_fg.green, \
+           palette->default_fg.blue, palette->default_bg.red, \
+           palette->default_bg.green, palette->default_bg.blue)
+    SHOWCASE_RESET();
     for (int i = 0; i < 8; i++)
     {
         if (i == 0)
             printf("%-7s", " ");
-        printf("%-2dm      ", i + 40);
+        printf("\e[48;2;%d;%d;%dm%-2dm      ",
+            palette->base[i].red,
+            palette->base[i].green,
+            palette->base[i].blue, i + 40);
     }
-    printf("\n");
+    printf("\e[0m\n");
     for (int i = 0; i < 8; i++)
     {
-        printf("%-2dm    ", i + 30);
+        SHOWCASE_RESET();
+        printf("\e[38;2;%d;%d;%dm%-2dm    ",
+           palette->base[i].red,
+           palette->base[i].green,
+           palette->base[i].blue,
+           i + 30);
         for (int j = 0; j < 8; j++)
         {
             printf(
-                "\e[0;38;2;%d;%d;%d;48;2;%d;%d;%dm%02d;%02dm\e[0m   ",
+                "\e[0;38;2;%d;%d;%d;48;2;%d;%d;%dm%02d;%02dm",
                 palette->base[i].red, palette->base[i].green,
                 palette->base[i].blue, palette->base[j].red,
                 palette->base[j].green, palette->base[j].blue, i + 30, j + 40
             );
+            SHOWCASE_RESET();
+            printf("   ");
         }
-        printf("\n");
+        printf("\e[0m\n");
     }
+    SHOWCASE_RESET();
     for (int i = 0; i < 8; i++)
     {
         if (i == 0)
             printf("%-7s", " ");
-        printf("%-3dm     ", i + 90);
+        printf("\e[48;2;%d;%d;%dm%-3dm     ",
+            palette->bright[i].red,
+            palette->bright[i].green,
+            palette->bright[i].blue, i + 100);
     }
-    printf("\n");
+    printf("\e[0m\n");
     for (int i = 0; i < 8; i++)
     {
-        printf("%-3dm   ", i + 100);
+        SHOWCASE_RESET();
+        printf("\e[38;2;%d;%d;%dm%-2dm    ",
+           palette->bright[i].red,
+           palette->bright[i].green,
+           palette->bright[i].blue,
+           i + 90);
         for (int j = 0; j < 8; j++)
         {
             printf(
-                "\e[0;38;2;%d;%d;%d;48;2;%d;%d;%dm%02d;%03dm\e[0m  ",
+                "\e[0;38;2;%d;%d;%d;48;2;%d;%d;%dm%02d;%03dm",
                 palette->bright[i].red, palette->bright[i].green,
                 palette->bright[i].blue, palette->bright[j].red,
                 palette->bright[j].green, palette->bright[j].blue, i + 90,
                 j + 100
             );
+            SHOWCASE_RESET();
+            printf("  ");
         }
-        printf("\n");
+        printf("\e[0m\n");
     }
 }
 
