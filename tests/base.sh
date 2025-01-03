@@ -39,7 +39,7 @@ str_eq_html "$str" "$want" "$got"
 
 # This errors with "SGR sequence too long":
 str=$(printf '\e[%sm' "$(for _ in $(seq 1 128); do printf '0;'; done)")
-want='Error: SGR sequence too long, at 258 characters read / 256 in SGR sequence which begun at 2 characters read.'
+want='ERROR: SGR sequence too long, at 258 characters read / 256 in SGR sequence which begun at 2 characters read.'
 got=$(printf '%s' "$str" | ./ansi2html -p vga 2>&1 || true)
 str_eq_html "$str" "$want" "$got"
 
@@ -53,19 +53,19 @@ str_eq_html "$str" "$want" "$got"
 
 # This is one too many:
 str=$(printf '\e[%s0;0m' "$(for _ in $(seq 1 42); do printf '0;1;32;'; done)")
-want='Error: SGR sequence too long, at 300 characters read / 298 in SGR sequence which begun at 2 characters read.'
+want='ERROR: SGR sequence too long, at 300 characters read / 298 in SGR sequence which begun at 2 characters read.'
 got=$(printf '%s' "$str" | ./ansi2html -p vga 2>&1 || true)
 str_eq_html "$str" "$want" "$got"
 
 # We just don't support numbers outside 0-255 in SGRs:
 str=$'\e[0;666m'
-want="Error: SGR sequence contains invalid number '666' at 8 characters read / 6 in SGR sequence which begun at 2 characters read."
+want="ERROR: SGR sequence contains invalid number '666' at 8 characters read / 6 in SGR sequence which begun at 2 characters read."
 got=$(printf '%s' "$str" | ./ansi2html -p vga 2>&1 || true)
 str_eq_html "$str" "$want" "$got"
 
 # Nor other characters than 0-9 or semicolons (yet)
 str=$'\e[0;Xm'
-want="Error: SGR sequence contains invalid character 'X' at 5 characters read / 3 in SGR sequence which begun at 2 characters read."
+want="ERROR: SGR sequence contains invalid character 'X' at 5 characters read / 3 in SGR sequence which begun at 2 characters read."
 got=$(printf '%s' "$str" | ./ansi2html -p vga 2>&1 || true)
 str_eq_html "$str" "$want" "$got"
 

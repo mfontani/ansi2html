@@ -6,10 +6,15 @@
 #define PUTC(c) (void)fputc_unlocked(c, stdout)
 #define PUTS(s) (void)fputs_unlocked(s, stdout)
 #define GETCHAR() getchar_unlocked()
+#define FREAD(buf, size, count, stream) fread_unlocked(buf, size, count, stream)
+#define FWRITE(buf, size, count, stream)                                       \
+    fwrite_unlocked(buf, size, count, stream)
 #else
 #define PUTC(c) (void)fputc(c, stdout)
 #define PUTS(s) (void)fputs(s, stdout)
 #define GETCHAR() getchar()
+#define FREAD(buf, size, count, stream) fread(buf, size, count, stream)
+#define FWRITE(buf, size, count, stream) fwrite(buf, size, count, stream)
 #endif
 
 extern void set_ansi_style_properties(
