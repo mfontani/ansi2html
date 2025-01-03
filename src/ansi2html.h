@@ -28,7 +28,8 @@ extern void show_ansi_style(
 
 // Returns a static string. Beware.
 extern char *ansi_span_start(
-    struct ansi_style *s, struct ansi_color_palette *palette, bool use_classes
+    struct ansi_style *s, struct ansi_color_palette *palette, bool use_classes,
+    bool use_compact
 );
 
 extern void

@@ -9,4 +9,8 @@ want=$'<span style="color:#0000AA;">Blue FG</span><span style="background-color:
 got=$(printf '%s' "$str" | ./ansi2html -p vga)
 str_eq_html "$str" "$want" "$got"
 
+want=$'<span style="color:#00A;">Blue FG</span><span style="background-color:#00A;">Blue BG</span><span style="color:#C097BC;background-color:#00A;">Nice FG/BG</span><span style="color:#00A;background-color:#C097BC;">reversed</span>'
+got=$(printf '%s' "$str" | ./ansi2html -p vga --use-compact)
+str_eq_html "$str" "$want" "$got"
+
 done_testing

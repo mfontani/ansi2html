@@ -14,6 +14,11 @@ got=$(printf '%s' "$str" | ./ansi2html -p vga --use-classes)
 str_eq_html "$str" "$want" "$got"
 
 str=$'\e[0;31mred\e[42mon green\e[7mreverse\e[0m'
+want='<span style="color:#A00;">red</span><span style="color:#A00;background-color:#0A0;">on green</span><span style="color:#0A0;background-color:#A00;">reverse</span>'
+got=$(printf '%s' "$str" | ./ansi2html -p vga --use-compact)
+str_eq_html "$str" "$want" "$got"
+
+str=$'\e[0;31mred\e[42mon green\e[7mreverse\e[0m'
 want='<span style="color:#AA0000;">red</span><span style="color:#AA0000;background-color:#00AA00;">on green</span><span style="color:#00AA00;background-color:#AA0000;">reverse</span>'
 got=$(printf '%s' "$str" | ./ansi2html -p vga)
 str_eq_html "$str" "$want" "$got"
@@ -35,6 +40,10 @@ want='<span style="color:#FF5555;">red</span><span style="color:#FF5555;backgrou
 got=$(printf '%s' "$str" | ./ansi2html -p vga -b)
 str_eq_html "$str" "$want" "$got"
 
+want='<span style="color:#F55;">red</span><span style="color:#F55;background-color:#0A0;">on green</span><span style="color:#5F5;background-color:#F55;">reverse</span>'
+got=$(printf '%s' "$str" | ./ansi2html -p vga -b --use-compact)
+str_eq_html "$str" "$want" "$got"
+
 want='<span class="fg-9">red</span><span class="fg-9 bg-2">on green</span><span class="fg-10 bg-1">reverse</span>'
 got=$(printf '%s' "$str" | ./ansi2html -p vga -b --use-classes)
 str_eq_html "$str" "$want" "$got"
@@ -43,6 +52,10 @@ str_eq_html "$str" "$want" "$got"
 str=$'\e[0;40;37mgreyonblack\e[7mreversed\e[0;30;47msame\e[0m'
 want='<span style="color:#AAAAAA;background-color:#000000;">greyonblack</span><span style="color:#000000;background-color:#AAAAAA;">reversed</span><span style="color:#000000;background-color:#AAAAAA;">same</span>'
 got=$(printf '%s' "$str" | ./ansi2html -p vga --rgb-for fg '#989898' --rgb-for bg '#111111')
+str_eq_html "$str" "$want" "$got"
+
+want='<span style="color:#AAA;background-color:#000;">greyonblack</span><span style="color:#000;background-color:#AAA;">reversed</span><span style="color:#000;background-color:#AAA;">same</span>'
+got=$(printf '%s' "$str" | ./ansi2html -p vga --rgb-for fg '#989898' --rgb-for bg '#111111' --use-compact)
 str_eq_html "$str" "$want" "$got"
 
 # But when bold + "bold is bright" is in the mix... oh boy
