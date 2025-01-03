@@ -393,38 +393,55 @@ void showcase_palette(struct ansi_color_palette *palette)
     }
     // Show "it" using the "default foreground "on" default background for the
     // parts in-between the colors.
-#define SHOWCASE_RESET() \
-    printf("\e[0;38;2;%d;%d;%d;48;2;%d;%d;%dm", \
-           palette->default_fg.red, palette->default_fg.green, \
-           palette->default_fg.blue, palette->default_bg.red, \
-           palette->default_bg.green, palette->default_bg.blue)
+    // clang-format off
+#define SHOWCASE_RESET()                                                       \
+    printf(                                                                    \
+        "\e[0;38;2;%d;%d;%d;48;2;%d;%d;%dm",                                   \
+        palette->default_fg.red,                                               \
+        palette->default_fg.green,                                             \
+        palette->default_fg.blue,                                              \
+        palette->default_bg.red,                                               \
+        palette->default_bg.green,                                             \
+        palette->default_bg.blue                                               \
+    )
+    // clang-format on
     SHOWCASE_RESET();
     for (int i = 0; i < 8; i++)
     {
         if (i == 0)
             printf("%-7s", " ");
+        // clang-format off
         printf("\e[48;2;%d;%d;%dm%-2dm      ",
             palette->base[i].red,
             palette->base[i].green,
-            palette->base[i].blue, i + 40);
+            palette->base[i].blue,
+            i + 40
+        );
+        // clang-format on
     }
     printf("\e[0m\n");
     for (int i = 0; i < 8; i++)
     {
         SHOWCASE_RESET();
+        // clang-format off
         printf("\e[38;2;%d;%d;%dm%-2dm    ",
-           palette->base[i].red,
-           palette->base[i].green,
-           palette->base[i].blue,
-           i + 30);
+            palette->base[i].red,
+            palette->base[i].green,
+            palette->base[i].blue,
+            i + 30
+        );
+        // clang-format on
         for (int j = 0; j < 8; j++)
         {
+            // clang-format off
             printf(
                 "\e[0;38;2;%d;%d;%d;48;2;%d;%d;%dm%02d;%02dm",
                 palette->base[i].red, palette->base[i].green,
                 palette->base[i].blue, palette->base[j].red,
-                palette->base[j].green, palette->base[j].blue, i + 30, j + 40
+                palette->base[j].green, palette->base[j].blue,
+                i + 30, j + 40
             );
+            // clang-format on
             SHOWCASE_RESET();
             printf("   ");
         }
@@ -435,29 +452,40 @@ void showcase_palette(struct ansi_color_palette *palette)
     {
         if (i == 0)
             printf("%-7s", " ");
+        // clang-format off
         printf("\e[48;2;%d;%d;%dm%-3dm     ",
             palette->bright[i].red,
             palette->bright[i].green,
-            palette->bright[i].blue, i + 100);
+            palette->bright[i].blue,
+            i + 100
+        );
+        // clang-format on
     }
     printf("\e[0m\n");
     for (int i = 0; i < 8; i++)
     {
         SHOWCASE_RESET();
+        // clang-format off
         printf("\e[38;2;%d;%d;%dm%-2dm    ",
-           palette->bright[i].red,
-           palette->bright[i].green,
-           palette->bright[i].blue,
-           i + 90);
+            palette->bright[i].red,
+            palette->bright[i].green,
+            palette->bright[i].blue,
+            i + 90
+        );
+        // clang-format on
         for (int j = 0; j < 8; j++)
         {
-            printf(
-                "\e[0;38;2;%d;%d;%d;48;2;%d;%d;%dm%02d;%03dm",
-                palette->bright[i].red, palette->bright[i].green,
-                palette->bright[i].blue, palette->bright[j].red,
-                palette->bright[j].green, palette->bright[j].blue, i + 90,
-                j + 100
+            // clang-format off
+            printf("\e[0;38;2;%d;%d;%d;48;2;%d;%d;%dm%02d;%03dm",
+                palette->bright[i].red,
+                palette->bright[i].green,
+                palette->bright[i].blue,
+                palette->bright[j].red,
+                palette->bright[j].green,
+                palette->bright[j].blue,
+                i + 90, j + 100
             );
+            // clang-format on
             SHOWCASE_RESET();
             printf("  ");
         }

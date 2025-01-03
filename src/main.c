@@ -9,6 +9,20 @@
 #define WITH_ITERM2_COLOR_SCHEMES "Does NOT have"
 #endif
 
+#ifndef INPUT_BUFFER_SIZE
+#define INPUT_BUFFER_SIZE 65536
+#endif
+
+#ifndef OUTPUT_BUFFER_SIZE
+#define OUTPUT_BUFFER_SIZE 65536
+#endif
+
+#ifndef FLUSH_LEEWAY
+#define FLUSH_LEEWAY 128
+#endif
+
+#define STRNGY_(x) #x
+#define STRNGY(x) STRNGY_(x)
 #define USAGE_FMT                                                              \
     "Usage: %s [options]\n"                                                    \
     "Options:\n"                                                               \
@@ -30,7 +44,47 @@
     "  --pre-add-style <style>  Add the style to the pre.\n"                   \
     "       Only usable with --pre.\n"                                         \
     "Note that the order of the options is important.\n"                       \
-    ""
+    "Buffers: " STRNGY(INPUT_BUFFER_SIZE                                       \
+    ) " input buffer size, " STRNGY(OUTPUT_BUFFER_SIZE                         \
+    ) " output buffer size.\n"                                                 \
+      ""
+
+static char output_buffer[OUTPUT_BUFFER_SIZE];
+static size_t output_buffer_idx = 0;
+static inline void flush_buffer(void)
+{
+    if (output_buffer_idx > 0)
+    {
+        FWRITE(output_buffer, 1, output_buffer_idx, stdout);
+        output_buffer_idx = 0;
+    }
+}
+static inline void str_to_buffer(const char *str, size_t len)
+{
+    if (output_buffer_idx + len + FLUSH_LEEWAY > sizeof(output_buffer))
+        flush_buffer();
+    // Append.
+    memcpy(output_buffer + output_buffer_idx, str, len);
+    output_buffer_idx += len;
+    output_buffer[output_buffer_idx] = '\0';
+}
+static inline void append_to_buffer(const char *str)
+{
+    size_t len = strlen(str);
+    if (output_buffer_idx + len + FLUSH_LEEWAY > sizeof(output_buffer))
+        flush_buffer();
+    // Append.
+    memcpy(output_buffer + output_buffer_idx, str, len);
+    output_buffer_idx += len;
+    output_buffer[output_buffer_idx] = '\0';
+}
+static inline void char_to_buffer(const unsigned char c)
+{
+    if (output_buffer_idx + FLUSH_LEEWAY > sizeof(output_buffer))
+        flush_buffer();
+    output_buffer[output_buffer_idx++] = (char)c;
+    output_buffer[output_buffer_idx] = '\0';
+}
 
 int main(int argc, char *argv[])
 {
@@ -391,8 +445,8 @@ int main(int argc, char *argv[])
             palette->default_bg.green, palette->default_bg.blue
         );
         if (pre_add_style)
-            PUTS(pre_add_style);
-        PUTS("\">");
+            append_to_buffer(pre_add_style);
+        str_to_buffer("\">", 2);
     }
 
     // We "keep" the span "declaration" for the current chunk of text, so we
@@ -402,60 +456,106 @@ int main(int argc, char *argv[])
     // or output it the first time:
     bool span_outputted = false;
 
-#define OUTPUT_SPAN_IF_NEEDED()                                                \
+    enum parser_state
+    {
+        STATE_TEXT,
+        STATE_GOT_ESC,
+        STATE_GOT_ESC_BRACKET,
+    } state = STATE_TEXT;
+
+    char buffer[INPUT_BUFFER_SIZE];
+    buffer[0] = '\0';
+    size_t sgr_chars_len = 0;
+    size_t current_sgr_len = 0;
+    unsigned char sgrs[128];
+    size_t sgrs_len = 0;
+    long current_sgr_value = 0L;
+    size_t read = 0;
+    size_t begun_at = read;
+
+#define ERROR(fmt, ...)                                                        \
     do                                                                         \
     {                                                                          \
-        if (span && !span_outputted)                                           \
-        {                                                                      \
-            PUTS(span);                                                        \
-            span_outputted = true;                                             \
-        }                                                                      \
+        flush_buffer();                                                        \
+        (void)fprintf(stderr, "ERROR: " fmt, ##__VA_ARGS__);                   \
+        exit(1);                                                               \
     } while (0)
 
     // Read STDIN, and convert ANSI to HTML:
-    int c;
-    size_t read = 0;
-    while ((c = GETCHAR()) != EOF)
+    do
     {
-        read++;
-        size_t sgr_chars_len = 0;
-        size_t current_sgr_len = 0;
-        unsigned char sgrs[128];
-        size_t sgrs_len = 0;
-        long current_sgr_value = 0L;
-        switch (c)
+        size_t buffer_len = FREAD(buffer, 1, sizeof(buffer), stdin);
+        if (buffer_len == 0)
+            break;
+        if (buffer_len > sizeof(buffer))
+            ERROR(
+                "Buffer overflow, read %zu bytes, but buffer is %zu "
+                "bytes.\n",
+                buffer_len, sizeof(buffer)
+            );
+        int buffer_idx = 0;
+        while (buffer_idx < (int)buffer_len)
         {
-        case '\033':
-            // The sequence should start with '[':
-            c = GETCHAR();
-            if (c == EOF)
-            {
-                OUTPUT_SPAN_IF_NEEDED();
-                PUTS("&#9243;");
-                break;
-            }
             read++;
-            if (c != '[')
+            unsigned char c = buffer[buffer_idx++];
+            switch (state)
             {
-                OUTPUT_SPAN_IF_NEEDED();
-                PUTS("&#9243;");
-                if (c == '<')
-                    PUTS("&lt;");
-                else if (c == '>')
-                    PUTS("&gt;");
-                else if (c == '&')
-                    PUTS("&amp;");
+            default:
+                ERROR("Invalid state %d.\n", (int)state);
+            case STATE_TEXT:
+                if (c == '\033')
+                {
+                    state = STATE_GOT_ESC;
+                }
                 else
-                    PUTC(c);
+                {
+                    if (span && !span_outputted)
+                    {
+                        append_to_buffer(span);
+                        span_outputted = true;
+                    }
+                    if (c == '&')
+                        str_to_buffer("&amp;", 5);
+                    else if (c == '<')
+                        str_to_buffer("&lt;", 4);
+                    else if (c == '>')
+                        str_to_buffer("&gt;", 4);
+                    else
+                        char_to_buffer(c);
+                }
                 break;
-            }
-            // We have an escape sequence. Read until 'm':
-            sgr_chars_len = 0;
-            size_t begun_at = read;
-            while ((c = GETCHAR()) != EOF)
-            {
-                read++;
+            case STATE_GOT_ESC:
+                if (c == '[')
+                {
+                    state = STATE_GOT_ESC_BRACKET;
+                    sgr_chars_len = 0;
+                    current_sgr_len = 0;
+                    sgrs_len = 0;
+                    current_sgr_value = 0L;
+                    begun_at = read;
+                }
+                else
+                {
+                    if (span && !span_outputted)
+                    {
+                        append_to_buffer(span);
+                        span_outputted = true;
+                    }
+                    str_to_buffer("&#9243;", 7);
+                    if (c == '<')
+                        str_to_buffer("&lt;", 4);
+                    else if (c == '>')
+                        str_to_buffer("&gt;", 4);
+                    else if (c == '&')
+                        str_to_buffer("&amp;", 5);
+                    else
+                        char_to_buffer(c);
+                    state = STATE_TEXT;
+                }
+                break;
+            case STATE_GOT_ESC_BRACKET:
                 sgr_chars_len++;
+                // Read until "m":
                 if (c == 'm')
                 {
                     // We have the end of the SGR sequence.
@@ -468,120 +568,97 @@ int main(int argc, char *argv[])
                             if (sgrs_len < sizeof(sgrs) - 1)
                                 sgrs[sgrs_len++] = sgr_value;
                             else
-                            {
-                                (void)fprintf(
-                                    stderr,
-                                    "Error: SGR sequence too long, at %zu "
+                                ERROR(
+                                    "SGR sequence too long, at %zu "
                                     "characters read / %zu in SGR sequence "
                                     "which begun at %zu characters read.\n",
                                     read, sgr_chars_len, begun_at
                                 );
-                                exit(1);
-                            }
-                            break;
                         }
-                        (void)fprintf(
-                            stderr,
-                            "Error: SGR sequence contains invalid number '%ld' "
-                            "at %zu characters read / %zu in SGR sequence "
-                            "which begun at %zu characters read.\n",
-                            current_sgr_value, read, sgr_chars_len, begun_at
-                        );
-                        exit(1);
-                    }
-                    break;
-                }
-                // The character should be a digit, or semicolon.
-                if (c >= '0' && c <= '9')
-                {
-                    long prev = current_sgr_value;
-                    current_sgr_value *= 10;
-                    current_sgr_value += c - '0';
-                    if (prev > current_sgr_value)
-                    {
-                        (void)fprintf(
-                            stderr,
-                            "Error: SGR sequence contains invalid number '%ld' "
-                            "at %zu characters read / %zu in SGR sequence "
-                            "which begun at %zu characters read.\n",
-                            current_sgr_value, read, sgr_chars_len, begun_at
-                        );
-                        exit(1);
-                    }
-                    current_sgr_len++;
-                }
-                else if (c == ';')
-                {
-                    if (current_sgr_value >= 0 && current_sgr_value <= 255)
-                    {
-                        unsigned char sgr_value =
-                            (unsigned char)current_sgr_value;
-                        if (sgrs_len < sizeof(sgrs) - 1)
-                            sgrs[sgrs_len++] = sgr_value;
                         else
-                        {
-                            (void)fprintf(
-                                stderr,
-                                "Error: SGR sequence too long, at %zu "
-                                "characters read / %zu in SGR sequence "
+                            ERROR(
+                                "SGR sequence contains invalid number "
+                                "'%ld' "
+                                "at %zu characters read / %zu in SGR sequence "
                                 "which begun at %zu characters read.\n",
-                                read, sgr_chars_len, begun_at
+                                current_sgr_value, read, sgr_chars_len, begun_at
                             );
-                            exit(1);
-                        }
-                        current_sgr_len = 0;
-                        current_sgr_value = 0;
                     }
-                    else
-                    {
-                        (void)fprintf(
-                            stderr,
-                            "Error: SGR sequence contains invalid number "
-                            "'%ld' at %zu characters read / %zu in SGR "
-                            "sequence which begun at %zu characters "
-                            "read.\n",
-                            current_sgr_value, read, sgr_chars_len, begun_at
-                        );
-                        exit(1);
-                    }
+                    state = STATE_TEXT;
+                    set_ansi_style_properties(palette, &style, sgrs, sgrs_len);
+                    if (span_outputted)
+                        str_to_buffer("</span>", 7);
+                    span = ansi_span_start(&style, palette, use_classes);
+                    span_outputted = false;
                 }
                 else
                 {
-                    (void)fprintf(
-                        stderr,
-                        "Error: SGR sequence contains invalid character "
-                        "'%c' at %zu characters read / %zu in SGR sequence "
-                        "which begun at %zu characters read.\n",
-                        c, read, sgr_chars_len, begun_at
-                    );
-                    exit(1);
+                    // The character should be a digit, or semicolon.
+                    if (c >= '0' && c <= '9')
+                    {
+                        long prev = current_sgr_value;
+                        current_sgr_value *= 10;
+                        current_sgr_value += c - '0';
+                        if (prev > current_sgr_value)
+                            ERROR(
+                                "SGR sequence contains invalid number "
+                                "'%ld' "
+                                "at %zu characters read / %zu in SGR sequence "
+                                "which begun at %zu characters read.\n",
+                                current_sgr_value, read, sgr_chars_len, begun_at
+                            );
+                        current_sgr_len++;
+                    }
+                    else if (c == ';')
+                    {
+                        if (current_sgr_value >= 0 && current_sgr_value <= 255)
+                        {
+                            unsigned char sgr_value =
+                                (unsigned char)current_sgr_value;
+                            if (sgrs_len < sizeof(sgrs) - 1)
+                                sgrs[sgrs_len++] = sgr_value;
+                            else
+                                ERROR(
+                                    "SGR sequence too long, at %zu "
+                                    "characters read / %zu in SGR sequence "
+                                    "which begun at %zu characters read.\n",
+                                    read, sgr_chars_len, begun_at
+                                );
+                            current_sgr_len = 0;
+                            current_sgr_value = 0;
+                        }
+                        else
+                            ERROR(
+                                "SGR sequence contains invalid number "
+                                "'%ld' at %zu characters read / %zu in SGR "
+                                "sequence which begun at %zu characters "
+                                "read.\n",
+                                current_sgr_value, read, sgr_chars_len, begun_at
+                            );
+                    }
+                    else
+                        ERROR(
+                            "SGR sequence contains invalid character "
+                            "'%c' at %zu characters read / %zu in SGR sequence "
+                            "which begun at %zu characters read.\n",
+                            c, read, sgr_chars_len, begun_at
+                        );
                 }
+                break;
             }
-            set_ansi_style_properties(palette, &style, sgrs, sgrs_len);
-            if (span_outputted)
-                PUTS("</span>");
-            span = ansi_span_start(&style, palette, use_classes);
-            span_outputted = false;
-            break;
-        default:
-            OUTPUT_SPAN_IF_NEEDED();
-            if (c == '&')
-                PUTS("&amp;");
-            else if (c == '<')
-                PUTS("&lt;");
-            else if (c == '>')
-                PUTS("&gt;");
-            else
-                PUTC(c);
-            break;
         }
-    }
+    } while (1);
 
     if (span_outputted)
-        PUTS("</span>");
+        str_to_buffer("</span>", 7);
+
+    if (state == STATE_GOT_ESC)
+        str_to_buffer("&#9243;", 7);
 
     if (wrap_in_pre)
-        PUTS("</pre>");
+        str_to_buffer("</pre>", 6);
+
+    flush_buffer();
 
     return 0;
 }
