@@ -186,22 +186,29 @@ int main(int argc, char *argv[])
         }
         else if (strcmp(argv[i], "--show-rgb-for") == 0)
         {
+#define VRGB(r, g, b) (unsigned int)(r), (unsigned int)(g), (unsigned int)(b)
             if (i + 1 < argc)
             {
                 i++;
                 if (!strcmp(argv[i], "fg"))
                 {
                     (void)printf(
-                        "#%02X%02X%02X\n", palette->default_fg.red,
-                        palette->default_fg.green, palette->default_fg.blue
+                        "#%02X%02X%02X\n",
+                        VRGB(
+                            palette->default_fg.red, palette->default_fg.green,
+                            palette->default_fg.blue
+                        )
                     );
                     exit(0);
                 }
                 else if (!strcmp(argv[i], "bg"))
                 {
                     (void)printf(
-                        "#%02X%02X%02X\n", palette->default_bg.red,
-                        palette->default_bg.green, palette->default_bg.blue
+                        "#%02X%02X%02X\n",
+                        VRGB(
+                            palette->default_bg.red, palette->default_bg.green,
+                            palette->default_bg.blue
+                        )
                     );
                     exit(0);
                 }
@@ -225,8 +232,9 @@ int main(int argc, char *argv[])
                         rgb = palette->base[color];
                     else
                         rgb = palette->bright[color - 8];
-                    (void
-                    )printf("#%02X%02X%02X\n", rgb.red, rgb.green, rgb.blue);
+                    (void)printf(
+                        "#%02X%02X%02X\n", VRGB(rgb.red, rgb.green, rgb.blue)
+                    );
                     exit(0);
                 }
                 else
@@ -316,31 +324,40 @@ int main(int argc, char *argv[])
                             (palette->default_fg.blue % 17) == 0)
                             printf(
                                 "color:#%01X%01X%01X;",
-                                palette->default_fg.red / 17,
-                                palette->default_fg.green / 17,
-                                palette->default_fg.blue / 17
+                                VRGB(
+                                    palette->default_fg.red / 17,
+                                    palette->default_fg.green / 17,
+                                    palette->default_fg.blue / 17
+                                )
                             );
                         else
                             printf(
-                                "color:#%02X%02X%02X;", palette->default_fg.red,
-                                palette->default_fg.green,
-                                palette->default_fg.blue
+                                "color:#%02X%02X%02X;",
+                                VRGB(
+                                    palette->default_fg.red,
+                                    palette->default_fg.green,
+                                    palette->default_fg.blue
+                                )
                             );
                         if ((palette->default_bg.red % 17) == 0 &&
                             (palette->default_bg.green % 17) == 0 &&
                             (palette->default_bg.blue % 17) == 0)
                             printf(
                                 "background-color:#%01X%01X%01X;",
-                                palette->default_bg.red / 17,
-                                palette->default_bg.green / 17,
-                                palette->default_bg.blue / 17
+                                VRGB(
+                                    palette->default_bg.red / 17,
+                                    palette->default_bg.green / 17,
+                                    palette->default_bg.blue / 17
+                                )
                             );
                         else
                             printf(
                                 "background-color:#%02X%02X%02X;",
-                                palette->default_bg.red,
-                                palette->default_bg.green,
-                                palette->default_bg.blue
+                                VRGB(
+                                    palette->default_bg.red,
+                                    palette->default_bg.green,
+                                    palette->default_bg.blue
+                                )
                             );
                         printf("}");
                     }
@@ -350,9 +367,14 @@ int main(int argc, char *argv[])
                         ".ansi2html{"
                         "color:#%02X%02X%02X;background-color:#%02X%02X%02X;"
                         "}",
-                        palette->default_fg.red, palette->default_fg.green,
-                        palette->default_fg.blue, palette->default_bg.red,
-                        palette->default_bg.green, palette->default_bg.blue
+                        VRGB(
+                            palette->default_fg.red, palette->default_fg.green,
+                            palette->default_fg.blue
+                        ),
+                        VRGB(
+                            palette->default_bg.red, palette->default_bg.green,
+                            palette->default_bg.blue
+                        )
                     );
             }
             if (use_compact && (palette->default_fg.red % 17) == 0 &&
@@ -360,30 +382,38 @@ int main(int argc, char *argv[])
                 (palette->default_fg.blue % 17) == 0)
                 printf(
                     ".ansi2html .fg-default{color:#%01X%01X%01X;}",
-                    palette->default_fg.red / 17,
-                    palette->default_fg.green / 17,
-                    palette->default_fg.blue / 17
+                    VRGB(
+                        palette->default_fg.red / 17,
+                        palette->default_fg.green / 17,
+                        palette->default_fg.blue / 17
+                    )
                 );
             else
                 printf(
                     ".ansi2html .fg-default{color:#%02X%02X%02X;}",
-                    palette->default_fg.red, palette->default_fg.green,
-                    palette->default_fg.blue
+                    VRGB(
+                        palette->default_fg.red, palette->default_fg.green,
+                        palette->default_fg.blue
+                    )
                 );
             if (use_compact && (palette->default_bg.red % 17) == 0 &&
                 (palette->default_bg.green % 17) == 0 &&
                 (palette->default_bg.blue % 17) == 0)
                 printf(
                     ".ansi2html .bg-default{background-color:#%01X%01X%01X;}",
-                    palette->default_bg.red / 17,
-                    palette->default_bg.green / 17,
-                    palette->default_bg.blue / 17
+                    VRGB(
+                        palette->default_bg.red / 17,
+                        palette->default_bg.green / 17,
+                        palette->default_bg.blue / 17
+                    )
                 );
             else
                 printf(
                     ".ansi2html .bg-default{background-color:#%02X%02X%02X;}",
-                    palette->default_bg.red, palette->default_bg.green,
-                    palette->default_bg.blue
+                    VRGB(
+                        palette->default_bg.red, palette->default_bg.green,
+                        palette->default_bg.blue
+                    )
                 );
             for (int j = 0; j < 256; j++)
             {
@@ -394,22 +424,22 @@ int main(int argc, char *argv[])
                 {
                     printf(
                         ".ansi2html .fg-%d{color:#%01X%01X%01X;}", j,
-                        rgb.red / 17, rgb.green / 17, rgb.blue / 17
+                        VRGB(rgb.red / 17, rgb.green / 17, rgb.blue / 17)
                     );
                     printf(
                         ".ansi2html .bg-%d{background-color:#%01X%01X%01X;}", j,
-                        rgb.red / 17, rgb.green / 17, rgb.blue / 17
+                        VRGB(rgb.red / 17, rgb.green / 17, rgb.blue / 17)
                     );
                 }
                 else
                 {
                     printf(
-                        ".ansi2html .fg-%d{color:#%02X%02X%02X;}", j, rgb.red,
-                        rgb.green, rgb.blue
+                        ".ansi2html .fg-%d{color:#%02X%02X%02X;}", j,
+                        VRGB(rgb.red, rgb.green, rgb.blue)
                     );
                     printf(
                         ".ansi2html .bg-%d{background-color:#%02X%02X%02X;}", j,
-                        rgb.red, rgb.green, rgb.blue
+                        VRGB(rgb.red, rgb.green, rgb.blue)
                     );
                 }
             }
@@ -533,9 +563,14 @@ int main(int argc, char *argv[])
         printf("<pre %sstyle=\"", use_classes ? "class=\"ansi2html\" " : "");
         printf(
             "color:#%02X%02X%02X;background-color:#%02X%02X%02X;",
-            palette->default_fg.red, palette->default_fg.green,
-            palette->default_fg.blue, palette->default_bg.red,
-            palette->default_bg.green, palette->default_bg.blue
+            VRGB(
+                palette->default_fg.red, palette->default_fg.green,
+                palette->default_fg.blue
+            ),
+            VRGB(
+                palette->default_bg.red, palette->default_bg.green,
+                palette->default_bg.blue
+            )
         );
         if (pre_add_style)
             append_to_buffer(pre_add_style);
