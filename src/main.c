@@ -27,6 +27,7 @@
     "Usage: %s [options]\n"                                                    \
     "Options:\n"                                                               \
     "  --help                   Show this help.\n"                             \
+    "  --list-palettes, -l      List the names of valid/known palettes.\n"     \
     "  --palette, -p <name>     Use the named palette. Default is vga.\n"      \
     "       " WITH_ITERM2_COLOR_SCHEMES " iTerm2-Color-Schemes palettes.\n"    \
     "  --bold-is-bright, -b     A bold color is a bright color.\n"             \
@@ -117,6 +118,13 @@ int main(int argc, char *argv[])
 #include "iterm2_color_schemes/named_palettes.h"
 #endif
     };
+#define LIST_ALL_PALETTES()                                                    \
+    do                                                                         \
+    {                                                                          \
+        for (size_t j = 0;                                                     \
+             j < sizeof(named_palettes) / sizeof(named_palettes[0]); j++)      \
+            (void)fprintf(stdout, "%s\n", named_palettes[j].name);             \
+    } while (0)
 #define SHOW_VALID_PALETTES()                                                  \
     do                                                                         \
     {                                                                          \
@@ -143,7 +151,14 @@ int main(int argc, char *argv[])
 
     for (int i = 1; i < argc; i++)
     {
-        if ((strcmp(argv[i], "--palette") == 0) || (strcmp(argv[i], "-p") == 0))
+        if (strcmp(argv[i], "--list-palettes") == 0 ||
+            strcmp(argv[i], "-l") == 0)
+        {
+            LIST_ALL_PALETTES();
+            exit(0);
+        }
+        else if ((strcmp(argv[i], "--palette") == 0) ||
+                 (strcmp(argv[i], "-p") == 0))
         {
             if (i + 1 < argc)
             {
