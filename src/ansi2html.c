@@ -1027,7 +1027,8 @@ static inline void styles_for_props(
 }
 
 char *ansi_span_start(
-    struct ansi_style *s, struct ansi_color_palette *palette, bool use_classes
+    struct ansi_style *s, struct ansi_color_palette *palette, bool use_classes,
+    bool use_compact
 )
 {
     if (!s || !palette)
@@ -1109,25 +1110,38 @@ char *ansi_span_start(
         else                                                                   \
             *(start) = (char)('A' + (n - 10));                                 \
     } while (0)
-#define COLOR2HEX(color, start)                                                \
+#define COLOR2HEX(color, offset)                                               \
     do                                                                         \
     {                                                                          \
-        char *pstart = start;                                                  \
+        char *pstart = this_style + offset;                                    \
+        if (use_compact && ((color).red % 17) == 0 &&                          \
+            ((color).green % 17) == 0 && ((color).blue % 17) == 0)             \
+        {                                                                      \
+            N2HEX((color).red / 17, pstart);                                   \
+            N2HEX((color).green / 17, pstart + 1);                             \
+            N2HEX((color).blue / 17, pstart + 2);                              \
+            *(pstart + 3) = ';';                                               \
+            *(pstart + 4) = '\0';                                              \
+            (void)memcpy(ps, this_style, offset + 4);                          \
+            ps += offset + 4;                                                  \
+            *ps = '\0';                                                        \
+            break;                                                             \
+        }                                                                      \
         N2HEX((color).red / 16, pstart);                                       \
         N2HEX((color).red % 16, pstart + 1);                                   \
         N2HEX((color).green / 16, pstart + 2);                                 \
         N2HEX((color).green % 16, pstart + 3);                                 \
         N2HEX((color).blue / 16, pstart + 4);                                  \
         N2HEX((color).blue % 16, pstart + 5);                                  \
+        (void)memcpy(ps, this_style, offset + 7);                              \
+        ps += offset + 7;                                                      \
+        *ps = '\0';                                                            \
     } while (0)
         struct ansi_rgb rgb = fg->rgb;
         if (s->bold_is_bright && props->bold && fg->is_base_color &&
             fg->base_color < 8 && fg->color_type == COLOR_TYPE_16)
             rgb = palette->bright[fg->base_color];
-        COLOR2HEX(rgb, this_style + 7);
-        (void)memcpy(ps, this_style, 14);
-        ps += 14;
-        *ps = '\0';
+        COLOR2HEX(rgb, 7);
     }
     // Same for background:
     if (bg->color_type == COLOR_TYPE_DEFAULT_BG ||
@@ -1172,10 +1186,7 @@ char *ansi_span_start(
     {
         //                      01234567890123456789012345
         char this_style[32] = {"background-color:#000000;"};
-        COLOR2HEX(bg->rgb, this_style + 18);
-        (void)memcpy(ps, this_style, 25);
-        ps += 25;
-        *ps = '\0';
+        COLOR2HEX(bg->rgb, 18);
     }
 #undef N2HEX
 #undef COLOR2HEX

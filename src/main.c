@@ -39,6 +39,8 @@
     "       Useful before using --use-classes. See also --bold-is-bright.\n"   \
     "  --use-classes            Use CSS classes where possible.\n"             \
     "       Default is to use inline styles.\n"                                \
+    "  --use-compact            Use compact output where possible.\n"          \
+    "       Default is not to. Transforms color:#00ffaa into color:#0fa\n"     \
     "  --pre                    Wrap the output in a <pre> block, using the\n" \
     "       default foreground and background colors.\n"                       \
     "  --pre-add-style <style>  Add the style to the pre.\n"                   \
@@ -135,6 +137,9 @@ int main(int argc, char *argv[])
     char *pre_add_style = NULL;
     // Do you want to use CSS classes, or in-line styles?
     bool use_classes = false;
+    // Do you want compact output, i.e. color:#0FA instead of color:#00FFAA
+    // where possible?
+    bool use_compact = false;
 
     for (int i = 1; i < argc; i++)
     {
@@ -287,38 +292,126 @@ int main(int argc, char *argv[])
         {
             use_classes = true;
         }
+        else if (strcmp(argv[i], "--use-compact") == 0)
+        {
+            use_compact = true;
+        }
         else if (strcmp(argv[i], "--show-style-tag") == 0)
         {
-            printf(
-                ".ansi2html{"
-                "color:#%02X%02X%02X;background-color:#%02X%02X%02X;"
-                "}",
-                palette->default_fg.red, palette->default_fg.green,
-                palette->default_fg.blue, palette->default_bg.red,
-                palette->default_bg.green, palette->default_bg.blue
-            );
-            printf(
-                ".ansi2html .fg-default{color:#%02X%02X%02X;}",
-                palette->default_fg.red, palette->default_fg.green,
-                palette->default_fg.blue
-            );
-            printf(
-                ".ansi2html .bg-default{background-color:#%02X%02X%02X;}",
-                palette->default_bg.red, palette->default_bg.green,
-                palette->default_bg.blue
-            );
+            {
+                bool did_compact = false;
+                if (use_compact)
+                {
+                    if (((palette->default_fg.red % 17) == 0 &&
+                         (palette->default_fg.green % 17) == 0 &&
+                         (palette->default_fg.blue % 17) == 0) ||
+                        ((palette->default_bg.red % 17) == 0 &&
+                         (palette->default_bg.green % 17) == 0 &&
+                         (palette->default_bg.blue % 17) == 0))
+                    {
+                        did_compact = true;
+                        printf(".ansi2html{");
+                        if ((palette->default_fg.red % 17) == 0 &&
+                            (palette->default_fg.green % 17) == 0 &&
+                            (palette->default_fg.blue % 17) == 0)
+                            printf(
+                                "color:#%01X%01X%01X;",
+                                palette->default_fg.red / 17,
+                                palette->default_fg.green / 17,
+                                palette->default_fg.blue / 17
+                            );
+                        else
+                            printf(
+                                "color:#%02X%02X%02X;", palette->default_fg.red,
+                                palette->default_fg.green,
+                                palette->default_fg.blue
+                            );
+                        if ((palette->default_bg.red % 17) == 0 &&
+                            (palette->default_bg.green % 17) == 0 &&
+                            (palette->default_bg.blue % 17) == 0)
+                            printf(
+                                "background-color:#%01X%01X%01X;",
+                                palette->default_bg.red / 17,
+                                palette->default_bg.green / 17,
+                                palette->default_bg.blue / 17
+                            );
+                        else
+                            printf(
+                                "background-color:#%02X%02X%02X;",
+                                palette->default_bg.red,
+                                palette->default_bg.green,
+                                palette->default_bg.blue
+                            );
+                        printf("}");
+                    }
+                }
+                if (!did_compact)
+                    printf(
+                        ".ansi2html{"
+                        "color:#%02X%02X%02X;background-color:#%02X%02X%02X;"
+                        "}",
+                        palette->default_fg.red, palette->default_fg.green,
+                        palette->default_fg.blue, palette->default_bg.red,
+                        palette->default_bg.green, palette->default_bg.blue
+                    );
+            }
+            if (use_compact && (palette->default_fg.red % 17) == 0 &&
+                (palette->default_fg.green % 17) == 0 &&
+                (palette->default_fg.blue % 17) == 0)
+                printf(
+                    ".ansi2html .fg-default{color:#%01X%01X%01X;}",
+                    palette->default_fg.red / 17,
+                    palette->default_fg.green / 17,
+                    palette->default_fg.blue / 17
+                );
+            else
+                printf(
+                    ".ansi2html .fg-default{color:#%02X%02X%02X;}",
+                    palette->default_fg.red, palette->default_fg.green,
+                    palette->default_fg.blue
+                );
+            if (use_compact && (palette->default_bg.red % 17) == 0 &&
+                (palette->default_bg.green % 17) == 0 &&
+                (palette->default_bg.blue % 17) == 0)
+                printf(
+                    ".ansi2html .bg-default{background-color:#%01X%01X%01X;}",
+                    palette->default_bg.red / 17,
+                    palette->default_bg.green / 17,
+                    palette->default_bg.blue / 17
+                );
+            else
+                printf(
+                    ".ansi2html .bg-default{background-color:#%02X%02X%02X;}",
+                    palette->default_bg.red, palette->default_bg.green,
+                    palette->default_bg.blue
+                );
             for (int j = 0; j < 256; j++)
             {
                 struct ansi_rgb rgb = {0};
                 ansi256_to_rgb(j, palette, &rgb);
-                printf(
-                    ".ansi2html .fg-%d{color:#%02X%02X%02X;}", j, rgb.red,
-                    rgb.green, rgb.blue
-                );
-                printf(
-                    ".ansi2html .bg-%d{background-color:#%02X%02X%02X;}", j,
-                    rgb.red, rgb.green, rgb.blue
-                );
+                if (use_compact && (rgb.red % 17) == 0 &&
+                    (rgb.green % 17) == 0 && (rgb.blue % 17) == 0)
+                {
+                    printf(
+                        ".ansi2html .fg-%d{color:#%01X%01X%01X;}", j,
+                        rgb.red / 17, rgb.green / 17, rgb.blue / 17
+                    );
+                    printf(
+                        ".ansi2html .bg-%d{background-color:#%01X%01X%01X;}", j,
+                        rgb.red / 17, rgb.green / 17, rgb.blue / 17
+                    );
+                }
+                else
+                {
+                    printf(
+                        ".ansi2html .fg-%d{color:#%02X%02X%02X;}", j, rgb.red,
+                        rgb.green, rgb.blue
+                    );
+                    printf(
+                        ".ansi2html .bg-%d{background-color:#%02X%02X%02X;}", j,
+                        rgb.red, rgb.green, rgb.blue
+                    );
+                }
             }
             show_additional_styles();
             exit(0);
@@ -588,7 +681,9 @@ int main(int argc, char *argv[])
                     set_ansi_style_properties(palette, &style, sgrs, sgrs_len);
                     if (span_outputted)
                         str_to_buffer("</span>", 7);
-                    span = ansi_span_start(&style, palette, use_classes);
+                    span = ansi_span_start(
+                        &style, palette, use_classes, use_compact
+                    );
                     span_outputted = false;
                 }
                 else
