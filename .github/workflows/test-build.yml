@@ -127,6 +127,10 @@ jobs:
           echo
           printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html -b -p vga
           echo
+      - name: run tests
+        timeout-minutes: 1
+        run: |
+          make run-tests
       - name: "Compress for ${{matrix.arch}} [with iTerm2 palettes]"
         timeout-minutes: 1
         run: |
