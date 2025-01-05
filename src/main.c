@@ -627,7 +627,7 @@ int main(int argc, char *argv[])
     // Read STDIN, and convert ANSI to HTML:
     do
     {
-        size_t buffer_len = FREAD(buffer, 1, sizeof(buffer), stdin);
+        register size_t buffer_len = FREAD(buffer, 1, sizeof(buffer), stdin);
         if (buffer_len == 0)
             break;
         if (buffer_len > sizeof(buffer))
@@ -636,11 +636,11 @@ int main(int argc, char *argv[])
                 "bytes.\n",
                 buffer_len, sizeof(buffer)
             );
-        int buffer_idx = 0;
+        register int buffer_idx = 0;
         while (buffer_idx < (int)buffer_len)
         {
             read++;
-            unsigned char c = buffer[buffer_idx++];
+            register unsigned char c = buffer[buffer_idx++];
             switch (state)
             {
             default:
