@@ -997,28 +997,31 @@ static inline void styles_for_props(
             slen += spec.style_len;                                            \
         }                                                                      \
     }
-    if (props->bold)
+    if (props->any)
     {
-        struct ansi_color *fg =
-            props->reverse ? &s->color_background : &s->color_foreground;
-        if (!s->bold_is_bright || !fg->is_base_color ||
-            fg->color_type != COLOR_TYPE_16)
-            ADD_STYLE(true, style_bold);
+        if (props->bold)
+        {
+            struct ansi_color *fg =
+                props->reverse ? &s->color_background : &s->color_foreground;
+            if (!s->bold_is_bright || !fg->is_base_color ||
+                fg->color_type != COLOR_TYPE_16)
+                ADD_STYLE(true, style_bold);
+        }
+        else if (props->faint)
+        {
+            ADD_STYLE(true, style_faint);
+        }
+        ADD_STYLE(props->italic, style_italic);
+        ADD_STYLE(props->double_underline, style_double_underline);
+        ADD_STYLE(props->underline, style_underline);
+        ADD_STYLE(props->slow_blink, style_slow_blink);
+        ADD_STYLE(props->fast_blink, style_fast_blink);
+        ADD_STYLE(props->crossout, style_crossout);
+        ADD_STYLE(props->fraktur, style_fraktur);
+        ADD_STYLE(props->frame, style_frame);
+        ADD_STYLE(props->circle, style_circle);
+        ADD_STYLE(props->overline, style_overline);
     }
-    else if (props->faint)
-    {
-        ADD_STYLE(true, style_faint);
-    }
-    ADD_STYLE(props->italic, style_italic);
-    ADD_STYLE(props->double_underline, style_double_underline);
-    ADD_STYLE(props->underline, style_underline);
-    ADD_STYLE(props->slow_blink, style_slow_blink);
-    ADD_STYLE(props->fast_blink, style_fast_blink);
-    ADD_STYLE(props->crossout, style_crossout);
-    ADD_STYLE(props->fraktur, style_fraktur);
-    ADD_STYLE(props->frame, style_frame);
-    ADD_STYLE(props->circle, style_circle);
-    ADD_STYLE(props->overline, style_overline);
     *style_len = slen;
     *class_len = clen;
 #undef ADD_STYLE
