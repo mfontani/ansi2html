@@ -46,8 +46,7 @@ for my $filename (@files) {
     for my $line (@lines) {
         if ($line =~ m!^[*][.](color\d+|foreground|background):\s*[#]([a-fA-F0-9]{6})!) {
             my ($k, $v) = ($1, $2);
-            my ($r, $g, $b) = $v =~ m!(..)(..)(..)!;
-            $spec->{$k} = [ map { hex } $r, $g, $b ];
+            $spec->{$k} = "0x\U$v";
         }
     }
     my @undefined;
@@ -64,11 +63,11 @@ for my $filename (@files) {
     $c_contents .= "// $file: $name -> $base\n";
     $c_contents .= "struct ansi_color_palette $real_var_name = {\n";
     $c_contents .= "    \"$name\",\n";
-    $c_contents .= sprintf "    {0x%02X, 0x%02X, 0x%02X},\n", @{ $spec->{background} };
-    $c_contents .= sprintf "    {0x%02X, 0x%02X, 0x%02X},\n", @{ $spec->{foreground} };
+    $c_contents .= sprintf "    {.rgb = %s},\n", $spec->{background};
+    $c_contents .= sprintf "    {.rgb = %s},\n", $spec->{foreground};
     for (0..15) {
         $c_contents .= "    {\n" if ($_ == 0);
-        $c_contents .= sprintf "      {0x%02X, 0x%02X, 0x%02X},\n", @{ $spec->{"color$_"} };
+        $c_contents .= sprintf "      {.rgb = %s},\n", $spec->{"color$_"};
         $c_contents .= "      },\n" if ($_ == 7 || $_ == 15);
         $c_contents .= "    {\n" if ($_ == 7);
     }
