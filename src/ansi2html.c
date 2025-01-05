@@ -1053,8 +1053,8 @@ char *ansi_span_start(
     styles_for_props(
         s, props, palette, styles, &style_len, classes, &class_len, use_classes
     );
-    char *pc = classes + class_len;
-    char *ps = styles + style_len;
+    register char *pc = classes + class_len;
+    register char *ps = styles + style_len;
     // RGB hex for "default foreground" color in the palette for foreground
     // should result in nothing at all. Also, if the current foreground color
     // Just So Happens to have the same RGB as the default foreground color.
@@ -1116,7 +1116,7 @@ char *ansi_span_start(
 #define COLOR2HEX(color, offset)                                               \
     do                                                                         \
     {                                                                          \
-        char *pstart = this_style + offset;                                    \
+        register char *pstart = this_style + offset;                           \
         if (use_compact && ((color).red % 17) == 0 &&                          \
             ((color).green % 17) == 0 && ((color).blue % 17) == 0)             \
         {                                                                      \
@@ -1198,7 +1198,7 @@ char *ansi_span_start(
     (void)ps;
     (void)pc;
     static char span_start[1024] = {0};
-    char *p = span_start;
+    register char *p = span_start;
     (void)memcpy(p, "<span ", 6);
     p += 6;
     *p = '\0';
