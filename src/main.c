@@ -21,37 +21,35 @@
 #define FLUSH_LEEWAY 128
 #endif
 
+// For x86 only, if the user didn't select either:
+// - WANT_AVX2, to use AVX2 instructions, or
+// - WANT_SSE2, to use SSE2 instructions, or
+// - WANT_DEFAULT, to use the default (old) implementation, which leaves the
+//   choice as to whether DWIM AVX2/SSE2 to the compiler
+// ... pick whatever the compiler tells us it has available, preferring AVX2
+// over SSE2.
+#define S_AVX_USAGE " Without AVX2 or SSE2 support.\n"
+#ifdef __x86_64
+#if !defined(WANT_AVX2) && !defined(WANT_SSE2) && !defined(WANT_DEFAULT)
+#ifdef __AVX2__
+#define WANT_AVX2
+#else
+#ifdef __SSE2__
+#define WANT_SSE2
+#endif
+#endif
+#ifdef WANT_DEFAULT
+#undef S_AVX_USAGE
+#define S_AVX_USAGE " With old compiler-based AVX/SSE2 support.\n"
+#endif
+#endif
+#else
+#undef WANT_AVX2
+#undef WANT_SSE2
+#endif
+
 #define STRNGY_(x) #x
 #define STRNGY(x) STRNGY_(x)
-#define USAGE_FMT                                                              \
-    "Usage: %s [options]\n"                                                    \
-    "Options:\n"                                                               \
-    "  --help                   Show this help.\n"                             \
-    "  --strip, -S              Strip all ANSI, rather than HTML encode.\n"    \
-    "  --list-palettes, -l      List the names of valid/known palettes.\n"     \
-    "  --palette, -p <name>     Use the named palette. Default is vga.\n"      \
-    "       " WITH_ITERM2_COLOR_SCHEMES " iTerm2-Color-Schemes palettes.\n"    \
-    "  --bold-is-bright, -b     A bold color is a bright color.\n"             \
-    "  --rgb-for <0-16,fg,bg> RRGGBB\n"                                        \
-    "      Override the base 16 colors, or the foreground or background\n"     \
-    "      color, with #RRGGBB.\n"                                             \
-    "  --show-rgb-for <0-16,fg,bg>  Show the #RRGGBB for the given palette.\n" \
-    "  --showcase-palette       Show the palette in a table.\n"                \
-    "  --show-style-tag         Output the style tag contents.\n"              \
-    "       Useful before using --use-classes. See also --bold-is-bright.\n"   \
-    "  --use-classes            Use CSS classes where possible.\n"             \
-    "       Default is to use inline styles.\n"                                \
-    "  --use-compact            Use compact output where possible.\n"          \
-    "       Default is not to. Transforms color:#00ffaa into color:#0fa\n"     \
-    "  --pre                    Wrap the output in a <pre> block, using the\n" \
-    "       default foreground and background colors.\n"                       \
-    "  --pre-add-style <style>  Add the style to the pre.\n"                   \
-    "       Only usable with --pre.\n"                                         \
-    "Note that the order of the options is important.\n"                       \
-    "Buffers: " STRNGY(INPUT_BUFFER_SIZE                                       \
-    ) " input buffer size, " STRNGY(OUTPUT_BUFFER_SIZE                         \
-    ) " output buffer size.\n"                                                 \
-      ""
 
 static char output_buffer[OUTPUT_BUFFER_SIZE];
 static size_t output_buffer_idx = 0;
@@ -98,6 +96,36 @@ static inline void char_to_buffer(const unsigned char c)
         exit(1);                                                               \
     } while (0)
 
+#if defined(WANT_AVX2) || defined(WANT_SSE2)
+#include <immintrin.h>
+#endif
+
+#ifdef WANT_AVX2
+#undef S_AVX_USAGE
+#define S_AVX_USAGE " With AVX2 version.\n"
+#define BUFFER_ALIGN_MODULUS 32
+#define BUFFER_ALIGN_IDX 31
+#define SIMD_VARTYPE __m256i
+#define SIMD_SET1 _mm256_set1_epi8
+#define SIMD_LOAD _mm256_load_si256
+#define SIMD_CMPEQ _mm256_cmpeq_epi8
+#define SIMD_MOVEMASK _mm256_movemask_epi8
+#define SIMD_MMORSI _mm256_or_si256
+#else
+#ifdef WANT_SSE2
+#undef S_AVX_USAGE
+#define S_AVX_USAGE " With SSE2 version.\n"
+#define BUFFER_ALIGN_MODULUS 16
+#define BUFFER_ALIGN_IDX 15
+#define SIMD_VARTYPE __m128i
+#define SIMD_SET1 _mm_set1_epi8
+#define SIMD_LOAD _mm_load_si128
+#define SIMD_CMPEQ _mm_cmpeq_epi8
+#define SIMD_MOVEMASK _mm_movemask_epi8
+#define SIMD_MMORSI _mm_or_si128
+#endif
+#endif
+
 static inline __attribute__((always_inline)) void just_strip_it(void)
 {
     enum parser_state
@@ -116,6 +144,13 @@ static inline __attribute__((always_inline)) void just_strip_it(void)
     size_t read = 0;
     size_t begun_at = read;
 
+#if defined(WANT_AVX2) || defined(WANT_SSE2)
+    // Find an ESC character, which might start an OSC sequence and needs to be
+    // handled separately. Everything else in the chunk while we're in
+    // STATE_TEXT can be instead output as-is.
+    const SIMD_VARTYPE has_esc = SIMD_SET1(0x1b);
+#endif
+
     do
     {
         register size_t buffer_len = FREAD(buffer, 1, sizeof(buffer), stdin);
@@ -130,6 +165,49 @@ static inline __attribute__((always_inline)) void just_strip_it(void)
         register int buffer_idx = 0;
         while (buffer_idx < (int)buffer_len)
         {
+#if defined(WANT_AVX2) || defined(WANT_SSE2)
+            if (state == STATE_TEXT &&
+                (buffer_idx % BUFFER_ALIGN_MODULUS) == 0 &&
+                buffer_idx + BUFFER_ALIGN_IDX < (int)buffer_len)
+            {
+                SIMD_VARTYPE chunk =
+                    SIMD_LOAD((SIMD_VARTYPE *)(buffer + buffer_idx));
+                SIMD_VARTYPE cmp = SIMD_CMPEQ(chunk, has_esc);
+                int mask = SIMD_MOVEMASK(cmp);
+                if (mask == 0)
+                {
+                    // No escape character in this chunk. Just output it.
+                    if (output_buffer_idx + BUFFER_ALIGN_MODULUS +
+                            FLUSH_LEEWAY >
+                        sizeof(output_buffer))
+                        flush_buffer();
+                    memcpy(
+                        output_buffer + output_buffer_idx, buffer + buffer_idx,
+                        BUFFER_ALIGN_MODULUS
+                    );
+                    output_buffer_idx += BUFFER_ALIGN_MODULUS;
+                    read += BUFFER_ALIGN_MODULUS;
+                    buffer_idx += BUFFER_ALIGN_MODULUS;
+                    continue;
+                }
+                // Find first byte in the sequence with ESC, and process the
+                // ones before it "as text", as that's what they are.
+                int first_esc = __builtin_ctz(mask);
+                if (first_esc > 0)
+                {
+                    if (output_buffer_idx + first_esc + FLUSH_LEEWAY >
+                        sizeof(output_buffer))
+                        flush_buffer();
+                    memcpy(
+                        output_buffer + output_buffer_idx, buffer + buffer_idx,
+                        first_esc
+                    );
+                    output_buffer_idx += first_esc;
+                    read += first_esc;
+                    buffer_idx += first_esc;
+                }
+            }
+#endif
             read++;
             register unsigned char c = buffer[buffer_idx++];
             switch (state)
@@ -276,6 +354,18 @@ static inline __attribute__((always_inline)) void ansi2html(
     size_t read = 0;
     size_t begun_at = read;
 
+#if defined(WANT_AVX2) || defined(WANT_SSE2)
+    // Find "funny" characters which need to be handled specifically:
+    // - ESC, which might start a OSC a sequence:
+    const SIMD_VARTYPE target_0x1b = SIMD_SET1(0x1b);
+    // - &, which needs to be escaped to "&amp;":
+    const SIMD_VARTYPE target_0x26 = SIMD_SET1(0x26);
+    // - <, which needs to be escaped to "&lt;":
+    const SIMD_VARTYPE target_0x3c = SIMD_SET1(0x3c);
+    // - >, which needs to be escaped to "&gt;":
+    const SIMD_VARTYPE target_0x3e = SIMD_SET1(0x3e);
+#endif
+
     // Read STDIN, and convert ANSI to HTML:
     do
     {
@@ -291,6 +381,65 @@ static inline __attribute__((always_inline)) void ansi2html(
         register int buffer_idx = 0;
         while (buffer_idx < (int)buffer_len)
         {
+#if defined(WANT_AVX2) || defined(WANT_SSE2)
+            if (state == STATE_TEXT &&
+                (buffer_idx % BUFFER_ALIGN_MODULUS) == 0 &&
+                buffer_idx + BUFFER_ALIGN_IDX < (int)buffer_len)
+            {
+                SIMD_VARTYPE chunk =
+                    SIMD_LOAD((SIMD_VARTYPE *)(buffer + buffer_idx));
+                SIMD_VARTYPE cmp_0x1b = SIMD_CMPEQ(chunk, target_0x1b);
+                SIMD_VARTYPE cmp_0x26 = SIMD_CMPEQ(chunk, target_0x26);
+                SIMD_VARTYPE cmp_0x3c = SIMD_CMPEQ(chunk, target_0x3c);
+                SIMD_VARTYPE cmp_0x3e = SIMD_CMPEQ(chunk, target_0x3e);
+                SIMD_VARTYPE combined = SIMD_MMORSI(
+                    SIMD_MMORSI(cmp_0x1b, cmp_0x26), SIMD_MMORSI(cmp_0x3c, cmp_0x3e)
+                );
+                int mask = SIMD_MOVEMASK(combined);
+                if (mask == 0)
+                {
+                    // No funny characters in this chunk. Just output it.
+                    if (span && !span_outputted)
+                    {
+                        append_to_buffer(span);
+                        span_outputted = true;
+                    }
+                    if (output_buffer_idx + BUFFER_ALIGN_MODULUS +
+                            FLUSH_LEEWAY >
+                        sizeof(output_buffer))
+                        flush_buffer();
+                    memcpy(
+                        output_buffer + output_buffer_idx, buffer + buffer_idx,
+                        BUFFER_ALIGN_MODULUS
+                    );
+                    output_buffer_idx += BUFFER_ALIGN_MODULUS;
+                    read += BUFFER_ALIGN_MODULUS;
+                    buffer_idx += BUFFER_ALIGN_MODULUS;
+                    continue;
+                }
+                // Find first byte with a funny character, and process the ones
+                // before it "as text", as that's what they are.
+                int first_funny = __builtin_ctz(mask);
+                if (first_funny > 0)
+                {
+                    if (span && !span_outputted)
+                    {
+                        append_to_buffer(span);
+                        span_outputted = true;
+                    }
+                    if (output_buffer_idx + first_funny + FLUSH_LEEWAY >
+                        sizeof(output_buffer))
+                        flush_buffer();
+                    memcpy(
+                        output_buffer + output_buffer_idx, buffer + buffer_idx,
+                        first_funny
+                    );
+                    output_buffer_idx += first_funny;
+                    read += first_funny;
+                    buffer_idx += first_funny;
+                }
+            }
+#endif
             read++;
             register unsigned char c = buffer[buffer_idx++];
             switch (state)
@@ -457,6 +606,37 @@ static inline __attribute__((always_inline)) void ansi2html(
 
     flush_buffer();
 }
+
+#define USAGE_FMT                                                              \
+    "Usage: %s [options]\n"                                                    \
+    "Options:\n"                                                               \
+    "  --help                   Show this help.\n"                             \
+    "  --strip, -S              Strip all ANSI, rather than HTML "             \
+    "encode.\n"                                                                \
+    "  --list-palettes, -l      List the names of valid/known palettes.\n"     \
+    "  --palette, -p <name>     Use the named palette. Default is vga.\n"      \
+    "       " WITH_ITERM2_COLOR_SCHEMES " iTerm2-Color-Schemes palettes.\n"    \
+    "  --bold-is-bright, -b     A bold color is a bright color.\n"             \
+    "  --rgb-for <0-16,fg,bg> RRGGBB\n"                                        \
+    "      Override the base 16 colors, or the foreground or background\n"     \
+    "      color, with #RRGGBB.\n"                                             \
+    "  --show-rgb-for <0-16,fg,bg>  Show the #RRGGBB for the given palette.\n" \
+    "  --showcase-palette       Show the palette in a table.\n"                \
+    "  --show-style-tag         Output the style tag contents.\n"              \
+    "       Useful before using --use-classes. See also --bold-is-bright.\n"   \
+    "  --use-classes            Use CSS classes where possible.\n"             \
+    "       Default is to use inline styles.\n"                                \
+    "  --use-compact            Use compact output where possible.\n"          \
+    "       Default is not to. Transforms color:#00ffaa into color:#0fa\n"     \
+    "  --pre                    Wrap the output in a <pre> block, using the\n" \
+    "       default foreground and background colors.\n"                       \
+    "  --pre-add-style <style>  Add the style to the pre.\n"                   \
+    "       Only usable with --pre.\n"                                         \
+    "Note that the order of the options is important.\n"                       \
+    "Buffers: " STRNGY(INPUT_BUFFER_SIZE                                       \
+    ) " input buffer size, " STRNGY(OUTPUT_BUFFER_SIZE                         \
+    ) " output buffer size." S_AVX_USAGE                                     \
+      "\n"
 
 int main(int argc, char *argv[])
 {
