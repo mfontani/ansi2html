@@ -15,4 +15,8 @@ want='<pre style="color:#999999;background-color:#111111;"><span style="color:#F
 got=$(printf '%s' "$str" | ./ansi2html -p vga --rgb-for 1 FF3030 --rgb-for fg 999999 --rgb-for bg 111111 --pre)
 str_eq_html "$str" "$want" "$got"
 
+# Stripping:
+want='reddefault'
+got=$(printf '%s' "$str" | ./ansi2html -S)
+
 done_testing

@@ -24,4 +24,8 @@ want=$'<span style="color:#AA0000;">red</span><span style="color:#FF5555;">bold 
 got=$(printf '%s' "$str" | ./ansi2html -p vga -b)
 str_eq_html "$str" "$want" "$got"
 
+# Stripping:
+want=$'redbold redred, normal intensity'
+got=$(printf '%s' "$str" | ./ansi2html -S)
+
 done_testing

@@ -69,4 +69,8 @@ want='<span class="fg-15 bg-0">greyonblack</span><span class="fg-8 bg-7">reverse
 got=$(printf '%s' "$str" | ./ansi2html -b -p vga --rgb-for fg '#989898' --rgb-for bg '#111111' --use-classes)
 str_eq_html "$str" "$want" "$got"
 
+# Stripping:
+want='greyonblackreversedsame'
+got=$(printf '%s' "$str" | ./ansi2html -S)
+
 done_testing

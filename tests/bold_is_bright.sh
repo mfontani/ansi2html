@@ -112,4 +112,8 @@ want='<span class="fg-1 bg-2">redongreen</span><span class="fg-9 bg-2">bright</s
 got=$(printf '%s' "$str" | ./ansi2html -p vga -b --use-classes)
 str_eq_html "$str" "$want" "$got"
 
+# Stripping:
+want='defaultboldreverse'
+got=$(printf '%s' "$str" | ./ansi2html -S)
+
 done_testing
