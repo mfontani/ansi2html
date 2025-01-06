@@ -26,6 +26,12 @@ $ printf '\e[31mred!\e[0m\n' | ansi2html
 ansi2html < input.txt > output.html
 ```
 
+Or, if you'd like to strip ANSI color codes instead:
+
+```bash
+ansi2html --strip < input.txt > output.txt
+```
+
 See `ansi2html --help` for more options. Options' order matters.
 
 You can choose a number of different palettes, which can be given as a parameter to the program. List the available ones with `ansi2html --palette`. The default palette is `vga`.
