@@ -116,7 +116,8 @@ static inline __attribute__((always_inline)) void just_strip_it(void)
     size_t read = 0;
     size_t begun_at = read;
 
-    do {
+    do
+    {
         register size_t buffer_len = FREAD(buffer, 1, sizeof(buffer), stdin);
         if (buffer_len == 0)
             break;
@@ -219,7 +220,7 @@ static inline __attribute__((always_inline)) void just_strip_it(void)
                 break;
             }
         }
-    } while(1);
+    } while (1);
 
     flush_buffer();
     exit(0);
@@ -227,7 +228,10 @@ static inline __attribute__((always_inline)) void just_strip_it(void)
 
 #define VRGB(r, g, b) (unsigned int)(r), (unsigned int)(g), (unsigned int)(b)
 
-static inline __attribute__((always_inline)) void ansi2html(struct ansi_style style, struct ansi_color_palette *palette, bool wrap_in_pre, char *pre_add_style, bool use_classes, bool use_compact)
+static inline __attribute__((always_inline)) void ansi2html(
+    struct ansi_style style, struct ansi_color_palette *palette,
+    bool wrap_in_pre, char *pre_add_style, bool use_classes, bool use_compact
+)
 {
     if (wrap_in_pre)
     {
@@ -452,7 +456,6 @@ static inline __attribute__((always_inline)) void ansi2html(struct ansi_style st
         str_to_buffer("</pre>", 6);
 
     flush_buffer();
-
 }
 
 int main(int argc, char *argv[])
@@ -525,8 +528,7 @@ int main(int argc, char *argv[])
             LIST_ALL_PALETTES();
             exit(0);
         }
-        else if (strcmp(argv[i], "--strip") == 0 ||
-                 strcmp(argv[i], "-S") == 0)
+        else if (strcmp(argv[i], "--strip") == 0 || strcmp(argv[i], "-S") == 0)
         {
             just_strip = true;
         }
@@ -945,8 +947,11 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (!just_strip) {
-        ansi2html(style, palette, wrap_in_pre, pre_add_style, use_classes, use_compact);
+    if (!just_strip)
+    {
+        ansi2html(
+            style, palette, wrap_in_pre, pre_add_style, use_classes, use_compact
+        );
         exit(0);
     }
 
