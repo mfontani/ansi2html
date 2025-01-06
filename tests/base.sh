@@ -41,6 +41,10 @@ want=$'Hello, <span style="color:#00A;">Blue FG</span> world!'
 got=$(printf '%s' "$str" | ./ansi2html -p vga --use-compact)
 str_eq_html "$str" "$want" "$got"
 
+# Strip!
+want=$'Hello, Blue FG world!'
+got=$(printf '%s' "$str" | ./ansi2html -S)
+
 # This errors with "SGR sequence too long":
 str=$(printf '\e[%sm' "$(for _ in $(seq 1 128); do printf '0;'; done)")
 want='ERROR: SGR sequence too long, at 258 characters read / 256 in SGR sequence which begun at 2 characters read.'
@@ -93,5 +97,9 @@ str=$'Foo \e&bar'
 want=$'Foo &#9243;&amp;bar'
 got=$(printf '%s' "$str" | ./ansi2html -p vga)
 str_eq_html "$str" "$want" "$got"
+
+# Stripping, the esc is "eaten" and ignored:
+want=$'Foo bar'
+got=$(printf '%s' "$str" | ./ansi2html -S)
 
 done_testing
