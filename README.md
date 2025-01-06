@@ -34,7 +34,15 @@ ansi2html --strip < input.txt > output.txt
 
 See `ansi2html --help` for more options. Options' order matters.
 
-You can choose a number of different palettes, which can be given as a parameter to the program. List the available ones with `ansi2html --palette`. The default palette is `vga`.
+You can choose a number of different palettes, which can be given as a parameter to the program. List the available ones with `ansi2html --list-palettes`. The default palette is `vga`.
+
+To get a nice preview of some/all the palettes, you might want to run something like:
+
+```bash
+ansi2html --list-palettes | \
+    grep -e kanaga -e dracula | \
+    xargs -I {} sh -c 'echo ; printf "%s\n" "{}" ; ansi2html --palette {} --rgb-for bg 000000 --showcase-palette'
+```
 
 You can further customize the palette (i.e. pick a palette, then customize a few colors; or use the default `vga` palette, and customize _all_ the colors) using the `--rgb-for <0-16,fg,bg> RRGGBB` option (e.g. `--rgb-for 0 101010` to customize the color 0 to be a dark black, or `--rgb-for fg 406040` to make the default foreground text a dark green).
 Note that only the first sixteen colors (dark 0-7 and bright 8-15), the default foreground, and the default background colors can be customized. The rest of the 256 colors (16-255) or indeed the 24-bit colors cannot be customized.
