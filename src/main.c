@@ -393,7 +393,8 @@ static inline __attribute__((always_inline)) void ansi2html(
                 SIMD_VARTYPE cmp_0x3c = SIMD_CMPEQ(chunk, target_0x3c);
                 SIMD_VARTYPE cmp_0x3e = SIMD_CMPEQ(chunk, target_0x3e);
                 SIMD_VARTYPE combined = SIMD_MMORSI(
-                    SIMD_MMORSI(cmp_0x1b, cmp_0x26), SIMD_MMORSI(cmp_0x3c, cmp_0x3e)
+                    SIMD_MMORSI(cmp_0x1b, cmp_0x26),
+                    SIMD_MMORSI(cmp_0x3c, cmp_0x3e)
                 );
                 int mask = SIMD_MOVEMASK(combined);
                 if (mask == 0)
@@ -635,8 +636,7 @@ static inline __attribute__((always_inline)) void ansi2html(
     "Note that the order of the options is important.\n"                       \
     "Buffers: " STRNGY(INPUT_BUFFER_SIZE                                       \
     ) " input buffer size, " STRNGY(OUTPUT_BUFFER_SIZE                         \
-    ) " output buffer size." S_AVX_USAGE                                     \
-      "\n"
+    ) " output buffer size." S_AVX_USAGE "\n"
 
 int main(int argc, char *argv[])
 {
