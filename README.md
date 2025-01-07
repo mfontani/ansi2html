@@ -80,6 +80,10 @@ env NO_ASAN=1 make ansi2html
 env NO_ASAN=1 make CC=clang ansi2html
 ```
 
+For the `-S` option (strip ANSI codes), on x86_64 an AVX2 or SSE2 version is available when compiled with `-march=native`.
+To pick a specific implementation (which can only be compiled if possible), pass on `-DWANT_SSE2` or `-DWANT_AVX2` in `CC=` or `DEFINES`.
+Alternatively, use `-DWANT_DEFAULT` to use the default implementation (i.e. without any forced intrinsics).
+
 ## How to compile (developer)
 
 Run `make CC=gcc-14 all`. It'll:

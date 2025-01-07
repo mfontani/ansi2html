@@ -23,11 +23,19 @@ jobs:
         timeout-minutes: 2
         run: |
           NO_ASAN=1 make -B ansi2html
+      - name: show help page
+        timeout-minutes: 1
+        run: |
+          ./ansi2html --help
       - name: attempt compilation with asan
         timeout-minutes: 2
         run: |
           make clean
           make -B ansi2html
+      - name: show help page
+        timeout-minutes: 1
+        run: |
+          ./ansi2html --help
       - name: test minimal conversion
         timeout-minutes: 1
         run: |
@@ -52,10 +60,18 @@ jobs:
         timeout-minutes: 2
         run: |
           clang -O2 -o ansi2html-noi2 -flto -static -Wl,-strip-all -Wl,-static src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c
+      - name: show help page
+        timeout-minutes: 1
+        run: |
+          ./ansi2html-noi2 --help
       - name: static compilation [with iTerm2 palettes] with clang/musl
         timeout-minutes: 2
         run: |
           clang -O2 -DITERM2_COLOR_SCHEMES -o ansi2html -flto -static -Wl,-strip-all -Wl,-static src/ansi2html.c src/main.c src/structs/ansi_color_palette.c src/structs/ansi_color_type.c src/structs/ansi_fg_or_bg.c src/iterm2_color_schemes/ansi_color_palette.c
+      - name: show help page
+        timeout-minutes: 1
+        run: |
+          ./ansi2html --help
       - name: test minimal conversion [no iTerm2 palettes]
         timeout-minutes: 1
         run: |
@@ -111,6 +127,10 @@ jobs:
           echo
           printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html-noi2 -b -p vga
           echo
+      - name: show help page
+        timeout-minutes: 1
+        run: |
+          ./ansi2html-noi2 --help
       - name: "Compress for ${{matrix.arch}} [no iTerm2 palettes]"
         timeout-minutes: 1
         run: |
@@ -127,6 +147,10 @@ jobs:
           echo
           printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html -b -p vga
           echo
+      - name: show help page
+        timeout-minutes: 1
+        run: |
+          ./ansi2html --help
       - name: run tests
         timeout-minutes: 1
         run: |
