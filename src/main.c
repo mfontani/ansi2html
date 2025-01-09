@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_SGRS 128
+
 #ifdef ITERM2_COLOR_SCHEMES
 #define WITH_ITERM2_COLOR_SCHEMES "Has"
 #else
@@ -138,7 +140,7 @@ static inline __attribute__((always_inline)) void just_strip_it(void)
     char buffer[INPUT_BUFFER_SIZE];
     buffer[0] = '\0';
     size_t sgr_chars_len = 0;
-    unsigned char sgrs[128];
+    unsigned char sgrs[MAX_SGRS];
     size_t sgrs_len = 0;
     long current_sgr_value = 0L;
     size_t read = 0;
@@ -348,7 +350,7 @@ static inline __attribute__((always_inline)) void ansi2html(
     buffer[0] = '\0';
     size_t sgr_chars_len = 0;
     size_t current_sgr_len = 0;
-    unsigned char sgrs[128];
+    unsigned char sgrs[MAX_SGRS];
     size_t sgrs_len = 0;
     long current_sgr_value = 0L;
     size_t read = 0;
