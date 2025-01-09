@@ -46,7 +46,7 @@ jobs:
       - name: run tests
         timeout-minutes: 2
         run: |
-          make run-tests
+          make prove
   build-static:
     runs-on: ubuntu-latest
     container: alpine:latest
@@ -154,7 +154,7 @@ jobs:
       - name: run tests
         timeout-minutes: 2
         run: |
-          make run-tests
+          make prove
       - name: "Compress for ${{matrix.arch}} [with iTerm2 palettes]"
         timeout-minutes: 1
         run: |
