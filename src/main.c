@@ -139,12 +139,10 @@ static inline __attribute__((always_inline)) void just_strip_it(void)
 
     char buffer[INPUT_BUFFER_SIZE];
     buffer[0] = '\0';
-    size_t sgr_chars_len = 0;
-    unsigned char sgrs[MAX_SGRS];
-    size_t sgrs_len = 0;
-    long current_sgr_value = 0L;
-    size_t read = 0;
-    size_t begun_at = read;
+    register size_t sgr_chars_len = 0;
+    register int current_sgr_value = 0;
+    register size_t read = 0;
+    register size_t begun_at = read;
 
 #if defined(WANT_AVX2) || defined(WANT_SSE2)
     // Find an ESC character, which might start an OSC sequence and needs to be
@@ -212,92 +210,63 @@ static inline __attribute__((always_inline)) void just_strip_it(void)
 #endif
             read++;
             register unsigned char c = buffer[buffer_idx++];
-            switch (state)
+            if (state == STATE_TEXT)
             {
-            default:
-                ERROR("Invalid state %d.\n", (int)state);
-            case STATE_TEXT:
-                if (c == '\033')
-                    state = STATE_GOT_ESC;
-                else
+                if (c != '\033')
                     char_to_buffer(c);
-                break;
-            case STATE_GOT_ESC:
+                else
+                    state = STATE_GOT_ESC;
+            }
+            else if (state == STATE_GOT_ESC)
+            {
                 if (c == '[')
                 {
                     state = STATE_GOT_ESC_BRACKET;
                     sgr_chars_len = 0;
-                    sgrs_len = 0;
-                    current_sgr_value = 0L;
+                    current_sgr_value = 0;
                     begun_at = read;
                 }
                 else
                 {
                     char_to_buffer('\x1b');
                     char_to_buffer(c);
-                    state = STATE_TEXT;
                 }
-                break;
-            case STATE_GOT_ESC_BRACKET:
+            }
+            else if (state == STATE_GOT_ESC_BRACKET)
+            {
                 sgr_chars_len++;
-                // Read until "m":
-                if (c == 'm')
+                if (c >= '0' && c <= '9')
                 {
-                    // We have the end of the SGR sequence.
+                    current_sgr_value *= 10;
+                    current_sgr_value += c - '0';
+                    if (current_sgr_value > 255)
+                        ERROR(
+                            "SGR sequence contains invalid number "
+                            "'%d' "
+                            "at %zu characters read / %zu in SGR sequence "
+                            "which begun at %zu characters read.\n",
+                            current_sgr_value, read, sgr_chars_len, begun_at
+                        );
+                }
+                else if (c == ';')
+                {
+                    current_sgr_value = 0;
+                }
+                else if (c == 'm')
+                {
                     state = STATE_TEXT;
                 }
                 else
-                {
-                    // The character should be a digit, or semicolon.
-                    if (c >= '0' && c <= '9')
-                    {
-                        long prev = current_sgr_value;
-                        current_sgr_value *= 10;
-                        current_sgr_value += c - '0';
-                        if (prev > current_sgr_value)
-                            ERROR(
-                                "SGR sequence contains invalid number "
-                                "'%ld' "
-                                "at %zu characters read / %zu in SGR sequence "
-                                "which begun at %zu characters read.\n",
-                                current_sgr_value, read, sgr_chars_len, begun_at
-                            );
-                    }
-                    else if (c == ';')
-                    {
-                        if (current_sgr_value >= 0 && current_sgr_value <= 255)
-                        {
-                            unsigned char sgr_value =
-                                (unsigned char)current_sgr_value;
-                            if (sgrs_len < sizeof(sgrs) - 1)
-                                sgrs[sgrs_len++] = sgr_value;
-                            else
-                                ERROR(
-                                    "SGR sequence too long, at %zu "
-                                    "characters read / %zu in SGR sequence "
-                                    "which begun at %zu characters read.\n",
-                                    read, sgr_chars_len, begun_at
-                                );
-                            current_sgr_value = 0;
-                        }
-                        else
-                            ERROR(
-                                "SGR sequence contains invalid number "
-                                "'%ld' at %zu characters read / %zu in SGR "
-                                "sequence which begun at %zu characters "
-                                "read.\n",
-                                current_sgr_value, read, sgr_chars_len, begun_at
-                            );
-                    }
-                    else
-                        ERROR(
-                            "SGR sequence contains invalid character "
-                            "'%c' at %zu characters read / %zu in SGR sequence "
-                            "which begun at %zu characters read.\n",
-                            c, read, sgr_chars_len, begun_at
-                        );
-                }
-                break;
+                    ERROR(
+                        "SGR sequence contains invalid character "
+                        "'%c' at %zu characters read / %zu in SGR sequence "
+                        "which begun at %zu characters read.\n",
+                        c, read, sgr_chars_len, begun_at
+                    );
+            }
+            else
+            {
+                ERROR("Invalid state %d.\n", (int)state);
             }
         }
     } while (1);
