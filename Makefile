@@ -89,3 +89,7 @@ clean:
 .PHONY: run-tests
 run-tests:
 	@prove -v tests/*.sh
+
+.PHONY: prove
+prove:
+	@prove tests/*.sh
