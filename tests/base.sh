@@ -98,8 +98,10 @@ want=$'Foo &#9243;&amp;bar'
 got=$(printf '%s' "$str" | ./ansi2html -p vga)
 str_eq_html "$str" "$want" "$got"
 
-# Stripping, the esc is "eaten" and ignored:
-want=$'Foo bar'
-got=$(printf '%s' "$str" | ./ansi2html -S)
+# Allows ignoring (some) SGR errors in input:
+str=$'\e[\n\e[0mFoo Bar\e[0m'
+want=$'Foo Bar'
+got=$(printf '%s' "$str" | ./ansi2html -S --ignore-sgr-errors)
+str_eq_html "$str" "$want" "$got"
 
 done_testing
