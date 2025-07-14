@@ -128,7 +128,8 @@ static inline void char_to_buffer(const unsigned char c)
 #endif
 #endif
 
-static inline __attribute__((always_inline)) void just_strip_it(void)
+static inline __attribute__((always_inline)) void
+just_strip_it(bool ignore_sgr_errors)
 {
     enum parser_state
     {
@@ -240,13 +241,18 @@ static inline __attribute__((always_inline)) void just_strip_it(void)
                     current_sgr_value *= 10;
                     current_sgr_value += c - '0';
                     if (current_sgr_value > 255)
-                        ERROR(
-                            "SGR sequence contains invalid number "
-                            "'%d' "
-                            "at %zu characters read / %zu in SGR sequence "
-                            "which begun at %zu characters read.\n",
-                            current_sgr_value, read, sgr_chars_len, begun_at
-                        );
+                    {
+                        if (ignore_sgr_errors)
+                            state = STATE_TEXT;
+                        else
+                            ERROR(
+                                "SGR sequence contains invalid number "
+                                "'%d' "
+                                "at %zu characters read / %zu in SGR sequence "
+                                "which begun at %zu characters read.\n",
+                                current_sgr_value, read, sgr_chars_len, begun_at
+                            );
+                    }
                 }
                 else if (c == ';')
                 {
@@ -257,12 +263,17 @@ static inline __attribute__((always_inline)) void just_strip_it(void)
                     state = STATE_TEXT;
                 }
                 else
-                    ERROR(
-                        "SGR sequence contains invalid character "
-                        "'%c' at %zu characters read / %zu in SGR sequence "
-                        "which begun at %zu characters read.\n",
-                        c, read, sgr_chars_len, begun_at
-                    );
+                {
+                    if (ignore_sgr_errors)
+                        state = STATE_TEXT;
+                    else
+                        ERROR(
+                            "SGR sequence contains invalid character "
+                            "'%c' at %zu characters read / %zu in SGR sequence "
+                            "which begun at %zu characters read.\n",
+                            c, read, sgr_chars_len, begun_at
+                        );
+                }
             }
             else
             {
@@ -585,6 +596,7 @@ static inline __attribute__((always_inline)) void ansi2html(
     "  --help                   Show this help.\n"                             \
     "  --strip, -S              Strip all ANSI, rather than HTML "             \
     "encode.\n"                                                                \
+    "  --ignore-sgr-errors      For --strip only.\n"                           \
     "  --list-palettes, -l      List the names of valid/known palettes.\n"     \
     "  --palette, -p <name>     Use the named palette. Default is vga.\n"      \
     "       " WITH_ITERM2_COLOR_SCHEMES " iTerm2-Color-Schemes palettes.\n"    \
@@ -605,8 +617,8 @@ static inline __attribute__((always_inline)) void ansi2html(
     "  --pre-add-style <style>  Add the style to the pre.\n"                   \
     "       Only usable with --pre.\n"                                         \
     "Note that the order of the options is important.\n"                       \
-    "Buffers: " STRNGY(INPUT_BUFFER_SIZE                                       \
-    ) " input buffer size, " STRNGY(OUTPUT_BUFFER_SIZE                         \
+    "Buffers: " STRNGY(INPUT_BUFFER_SIZE) " input buffer size, " STRNGY(       \
+        OUTPUT_BUFFER_SIZE                                                     \
     ) " output buffer size." S_AVX_USAGE "\n"
 
 int main(int argc, char *argv[])
@@ -670,6 +682,8 @@ int main(int argc, char *argv[])
     bool use_compact = false;
     // Do you "just" want to strip all the ANSI codes, and output the text?
     bool just_strip = false;
+    // For --strip only, whether to ignore SGR errors in input
+    bool ignore_sgr_errors = false;
 
     for (int i = 1; i < argc; i++)
     {
@@ -811,6 +825,10 @@ int main(int argc, char *argv[])
         else if (strcmp(argv[i], "--pre") == 0)
         {
             wrap_in_pre = true;
+        }
+        else if (strcmp(argv[i], "--ignore-sgr-errors") == 0)
+        {
+            ignore_sgr_errors = true;
         }
         else if (strcmp(argv[i], "--pre-add-style") == 0)
         {
@@ -1098,6 +1116,15 @@ int main(int argc, char *argv[])
         }
     }
 
+    if (ignore_sgr_errors && !just_strip)
+    {
+        (void)fprintf(
+            stderr, "--ignore-sgr-errors is only available for --strip.\n"
+        );
+        SHOW_USAGE();
+        exit(1);
+    }
+
     if (!just_strip)
     {
         ansi2html(
@@ -1106,6 +1133,6 @@ int main(int argc, char *argv[])
         exit(0);
     }
 
-    just_strip_it();
+    just_strip_it(ignore_sgr_errors);
     exit(0);
 }
