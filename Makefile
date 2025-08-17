@@ -69,9 +69,9 @@ ansi2html: Makefile $(C_FILES) $(H_FILES)
 all: format tags ansi2html
 
 .PHONY: format
-format: Makefile $(C_FILES) $(H_FILES)
+format: scripts/format.sh Makefile $(C_FILES) $(H_FILES)
 	@start=$$(perl -MTime::HiRes=gettimeofday -E'say scalar gettimeofday')
-	@clang-format -i $(C_FILES) $(H_FILES)
+	@./scripts/format.sh clang-format -i $(C_FILES) $(H_FILES)
 	@end=$$(perl -MTime::HiRes=gettimeofday -E'say scalar gettimeofday')
 	@perl -E'say sprintf "Format time: %.4f seconds", $$ARGV[1] - $$ARGV[0]' "$$start" "$$end"
 

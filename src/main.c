@@ -90,11 +90,13 @@ static inline void char_to_buffer(const unsigned char c)
     output_buffer[output_buffer_idx] = '\0';
 }
 
+#define SAY(fmt, ...) (void)fprintf(stdout, fmt "\n", __VA_ARGS__)
+#define WARN(...) (void)fprintf(stderr, __VA_ARGS__)
 #define ERROR(fmt, ...)                                                        \
     do                                                                         \
     {                                                                          \
         flush_buffer();                                                        \
-        (void)fprintf(stderr, "ERROR: " fmt, ##__VA_ARGS__);                   \
+        WARN("ERROR: " fmt, ##__VA_ARGS__);                                    \
         exit(1);                                                               \
     } while (0)
 
@@ -286,7 +288,11 @@ just_strip_it(bool ignore_sgr_errors)
     exit(0);
 }
 
-#define VRGB(r, g, b) (unsigned int)(r), (unsigned int)(g), (unsigned int)(b)
+#define VRGB(p)                                                                \
+    (unsigned int)((p).red), (unsigned int)((p).green), (unsigned int)((p).blue)
+#define VRGB17(p)                                                              \
+    (unsigned int)((p).red / 17), (unsigned int)((p).green / 17),              \
+        (unsigned int)((p).blue / 17)
 
 static inline __attribute__((always_inline)) void ansi2html(
     struct ansi_style style, struct ansi_color_palette *palette,
@@ -298,14 +304,7 @@ static inline __attribute__((always_inline)) void ansi2html(
         printf("<pre %sstyle=\"", use_classes ? "class=\"ansi2html\" " : "");
         printf(
             "color:#%02X%02X%02X;background-color:#%02X%02X%02X;",
-            VRGB(
-                palette->default_fg.red, palette->default_fg.green,
-                palette->default_fg.blue
-            ),
-            VRGB(
-                palette->default_bg.red, palette->default_bg.green,
-                palette->default_bg.blue
-            )
+            VRGB(palette->default_fg), VRGB(palette->default_bg)
         );
         if (pre_add_style)
             append_to_buffer(pre_add_style);
@@ -626,7 +625,7 @@ int main(int argc, char *argv[])
 #define SHOW_USAGE()                                                           \
     do                                                                         \
     {                                                                          \
-        (void)fprintf(stderr, USAGE_FMT, argv[0]);                             \
+        WARN(USAGE_FMT, argv[0]);                                              \
     } while (0)
     struct named_palettes
     {
@@ -655,15 +654,15 @@ int main(int argc, char *argv[])
     {                                                                          \
         for (size_t j = 0;                                                     \
              j < sizeof(named_palettes) / sizeof(named_palettes[0]); j++)      \
-            (void)fprintf(stdout, "%s\n", named_palettes[j].name);             \
+            SAY("%s", named_palettes[j].name);                                 \
     } while (0)
 #define SHOW_VALID_PALETTES()                                                  \
     do                                                                         \
     {                                                                          \
-        (void)fprintf(stderr, "Valid palettes:\n");                            \
+        WARN("Valid palettes:\n");                                             \
         for (size_t j = 0;                                                     \
              j < sizeof(named_palettes) / sizeof(named_palettes[0]); j++)      \
-            (void)fprintf(stderr, "- %s\n", named_palettes[j].name);           \
+            WARN("- %s\n", named_palettes[j].name);                            \
     } while (0)
 
     // We start with a "reset" style:
@@ -717,8 +716,7 @@ int main(int argc, char *argv[])
                 }
                 if (!palette)
                 {
-                    (void
-                    )fprintf(stderr, "Error: Unknown palette '%s'.\n", argv[i]);
+                    WARN("Error: Unknown palette '%s'.\n", argv[i]);
                     SHOW_VALID_PALETTES();
                     SHOW_USAGE();
                     exit(1);
@@ -726,8 +724,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                (void
-                )fprintf(stderr, "Error: Missing argument to '--palette'.\n");
+                WARN("Error: Missing argument to '--palette'.\n");
                 SHOW_VALID_PALETTES();
                 SHOW_USAGE();
                 exit(1);
@@ -746,32 +743,19 @@ int main(int argc, char *argv[])
                 i++;
                 if (!strcmp(argv[i], "fg"))
                 {
-                    (void)printf(
-                        "#%02X%02X%02X\n",
-                        VRGB(
-                            palette->default_fg.red, palette->default_fg.green,
-                            palette->default_fg.blue
-                        )
-                    );
+                    (void)printf("#%02X%02X%02X\n", VRGB(palette->default_fg));
                     exit(0);
                 }
                 else if (!strcmp(argv[i], "bg"))
                 {
-                    (void)printf(
-                        "#%02X%02X%02X\n",
-                        VRGB(
-                            palette->default_bg.red, palette->default_bg.green,
-                            palette->default_bg.blue
-                        )
-                    );
+                    (void)printf("#%02X%02X%02X\n", VRGB(palette->default_bg));
                     exit(0);
                 }
                 char *endptr = NULL;
                 long color = strtol(argv[i], &endptr, 10);
                 if (!endptr || *endptr != '\0')
                 {
-                    (void)fprintf(
-                        stderr,
+                    WARN(
                         "Error: Invalid color '%s' needs to be 0-15 or fg or "
                         "bg.\n",
                         argv[i]
@@ -786,15 +770,12 @@ int main(int argc, char *argv[])
                         rgb = palette->base[color];
                     else
                         rgb = palette->bright[color - 8];
-                    (void)printf(
-                        "#%02X%02X%02X\n", VRGB(rgb.red, rgb.green, rgb.blue)
-                    );
+                    (void)printf("#%02X%02X%02X\n", VRGB(rgb));
                     exit(0);
                 }
                 else
                 {
-                    (void)fprintf(
-                        stderr,
+                    WARN(
                         "Error: Invalid color '%s' needs to be 0-15 or fg or "
                         "bg.\n",
                         argv[i]
@@ -805,9 +786,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                (void)fprintf(
-                    stderr, "Error: Missing argument to '--show-rgb-for'.\n"
-                );
+                WARN("Error: Missing argument to '--show-rgb-for'.\n");
                 SHOW_USAGE();
                 exit(1);
             }
@@ -834,9 +813,7 @@ int main(int argc, char *argv[])
         {
             if (!wrap_in_pre)
             {
-                (void)fprintf(
-                    stderr, "Error: Need to use --pre before --pre-add-style.\n"
-                );
+                WARN("Error: Need to use --pre before --pre-add-style.\n");
                 SHOW_USAGE();
                 exit(1);
             }
@@ -847,9 +824,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                (void)fprintf(
-                    stderr, "Error: Missing argument to '--pre-add-style'.\n"
-                );
+                WARN("Error: Missing argument to '--pre-add-style'.\n");
                 SHOW_USAGE();
                 exit(1);
             }
@@ -882,40 +857,24 @@ int main(int argc, char *argv[])
                             (palette->default_fg.blue % 17) == 0)
                             printf(
                                 "color:#%01X%01X%01X;",
-                                VRGB(
-                                    palette->default_fg.red / 17,
-                                    palette->default_fg.green / 17,
-                                    palette->default_fg.blue / 17
-                                )
+                                VRGB17(palette->default_fg)
                             );
                         else
                             printf(
                                 "color:#%02X%02X%02X;",
-                                VRGB(
-                                    palette->default_fg.red,
-                                    palette->default_fg.green,
-                                    palette->default_fg.blue
-                                )
+                                VRGB(palette->default_fg)
                             );
                         if ((palette->default_bg.red % 17) == 0 &&
                             (palette->default_bg.green % 17) == 0 &&
                             (palette->default_bg.blue % 17) == 0)
                             printf(
                                 "background-color:#%01X%01X%01X;",
-                                VRGB(
-                                    palette->default_bg.red / 17,
-                                    palette->default_bg.green / 17,
-                                    palette->default_bg.blue / 17
-                                )
+                                VRGB17(palette->default_bg)
                             );
                         else
                             printf(
                                 "background-color:#%02X%02X%02X;",
-                                VRGB(
-                                    palette->default_bg.red,
-                                    palette->default_bg.green,
-                                    palette->default_bg.blue
-                                )
+                                VRGB(palette->default_bg)
                             );
                         printf("}");
                     }
@@ -925,14 +884,7 @@ int main(int argc, char *argv[])
                         ".ansi2html{"
                         "color:#%02X%02X%02X;background-color:#%02X%02X%02X;"
                         "}",
-                        VRGB(
-                            palette->default_fg.red, palette->default_fg.green,
-                            palette->default_fg.blue
-                        ),
-                        VRGB(
-                            palette->default_bg.red, palette->default_bg.green,
-                            palette->default_bg.blue
-                        )
+                        VRGB(palette->default_fg), VRGB(palette->default_bg)
                     );
             }
             if (use_compact && (palette->default_fg.red % 17) == 0 &&
@@ -940,38 +892,24 @@ int main(int argc, char *argv[])
                 (palette->default_fg.blue % 17) == 0)
                 printf(
                     ".ansi2html .fg-default{color:#%01X%01X%01X;}",
-                    VRGB(
-                        palette->default_fg.red / 17,
-                        palette->default_fg.green / 17,
-                        palette->default_fg.blue / 17
-                    )
+                    VRGB17(palette->default_fg)
                 );
             else
                 printf(
                     ".ansi2html .fg-default{color:#%02X%02X%02X;}",
-                    VRGB(
-                        palette->default_fg.red, palette->default_fg.green,
-                        palette->default_fg.blue
-                    )
+                    VRGB(palette->default_fg)
                 );
             if (use_compact && (palette->default_bg.red % 17) == 0 &&
                 (palette->default_bg.green % 17) == 0 &&
                 (palette->default_bg.blue % 17) == 0)
                 printf(
                     ".ansi2html .bg-default{background-color:#%01X%01X%01X;}",
-                    VRGB(
-                        palette->default_bg.red / 17,
-                        palette->default_bg.green / 17,
-                        palette->default_bg.blue / 17
-                    )
+                    VRGB17(palette->default_bg)
                 );
             else
                 printf(
                     ".ansi2html .bg-default{background-color:#%02X%02X%02X;}",
-                    VRGB(
-                        palette->default_bg.red, palette->default_bg.green,
-                        palette->default_bg.blue
-                    )
+                    VRGB(palette->default_bg)
                 );
             for (int j = 0; j < 256; j++)
             {
@@ -981,23 +919,17 @@ int main(int argc, char *argv[])
                     (rgb.green % 17) == 0 && (rgb.blue % 17) == 0)
                 {
                     printf(
-                        ".ansi2html .fg-%d{color:#%01X%01X%01X;}", j,
-                        VRGB(rgb.red / 17, rgb.green / 17, rgb.blue / 17)
-                    );
-                    printf(
-                        ".ansi2html .bg-%d{background-color:#%01X%01X%01X;}", j,
-                        VRGB(rgb.red / 17, rgb.green / 17, rgb.blue / 17)
+                        ".ansi2html .fg-%d{color:#%01X%01X%01X;}"
+                        ".ansi2html .bg-%d{background-color:#%01X%01X%01X;}",
+                        j, VRGB17(rgb), j, VRGB17(rgb)
                     );
                 }
                 else
                 {
                     printf(
-                        ".ansi2html .fg-%d{color:#%02X%02X%02X;}", j,
-                        VRGB(rgb.red, rgb.green, rgb.blue)
-                    );
-                    printf(
-                        ".ansi2html .bg-%d{background-color:#%02X%02X%02X;}", j,
-                        VRGB(rgb.red, rgb.green, rgb.blue)
+                        ".ansi2html .fg-%d{color:#%02X%02X%02X;}"
+                        ".ansi2html .bg-%d{background-color:#%02X%02X%02X;}",
+                        j, VRGB(rgb), j, VRGB(rgb)
                     );
                 }
             }
@@ -1020,8 +952,7 @@ int main(int argc, char *argv[])
                     long color = strtol(argv[i], &endptr, 10);
                     if (!endptr || *endptr != '\0')
                     {
-                        (void)fprintf(
-                            stderr,
+                        WARN(
                             "Error: Invalid color '%s' needs to be 0-15 or fg "
                             "or bg.\n",
                             argv[i]
@@ -1036,8 +967,7 @@ int main(int argc, char *argv[])
                 }
                 if (!which_rgb)
                 {
-                    (void)fprintf(
-                        stderr,
+                    WARN(
                         "Error: Invalid color '%s' needs to be 0-15 or fg or "
                         "bg.\n",
                         argv[i]
@@ -1054,8 +984,7 @@ int main(int argc, char *argv[])
                         color++;
                     if (strlen(color) != 6)
                     {
-                        (void)fprintf(
-                            stderr,
+                        WARN(
                             "Error: Invalid color '%s' needs to be #RRGGBB.\n",
                             argv[i]
                         );
@@ -1066,8 +995,7 @@ int main(int argc, char *argv[])
                     long lrgb = strtol(color, &endptr, 16);
                     if (!endptr || *endptr != '\0')
                     {
-                        (void)fprintf(
-                            stderr,
+                        WARN(
                             "Error: Invalid color '%s' needs to be #RRGGBB.\n",
                             argv[i]
                         );
@@ -1076,8 +1004,7 @@ int main(int argc, char *argv[])
                     }
                     if (lrgb < 0 || lrgb > 0xFFFFFF)
                     {
-                        (void)fprintf(
-                            stderr,
+                        WARN(
                             "Error: Invalid color '%s' needs to be #RRGGBB.\n",
                             argv[i]
                         );
@@ -1091,18 +1018,14 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    (void)fprintf(
-                        stderr, "Error: Missing argument 2 for '--rgb-for'.\n"
-                    );
+                    WARN("Error: Missing argument 2 for '--rgb-for'.\n");
                     SHOW_USAGE();
                     exit(1);
                 }
             }
             else
             {
-                (void)fprintf(
-                    stderr, "Error: Missing argument 1 for '--rgb-for'.\n"
-                );
+                WARN("Error: Missing argument 1 for '--rgb-for'.\n");
                 SHOW_USAGE();
                 exit(1);
             }
@@ -1110,7 +1033,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            (void)fprintf(stderr, "Error: Unknown argument '%s'.\n", argv[i]);
+            WARN("Error: Unknown argument '%s'.\n", argv[i]);
             SHOW_USAGE();
             exit(1);
         }
@@ -1118,9 +1041,7 @@ int main(int argc, char *argv[])
 
     if (ignore_sgr_errors && !just_strip)
     {
-        (void)fprintf(
-            stderr, "--ignore-sgr-errors is only available for --strip.\n"
-        );
+        WARN("--ignore-sgr-errors is only available for --strip.\n");
         SHOW_USAGE();
         exit(1);
     }
