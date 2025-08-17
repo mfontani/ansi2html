@@ -90,11 +90,13 @@ static inline void char_to_buffer(const unsigned char c)
     output_buffer[output_buffer_idx] = '\0';
 }
 
+#define SAY(fmt, ...) (void)fprintf(stdout, fmt "\n", __VA_ARGS__)
+#define WARN(...) (void)fprintf(stderr, __VA_ARGS__)
 #define ERROR(fmt, ...)                                                        \
     do                                                                         \
     {                                                                          \
         flush_buffer();                                                        \
-        (void)fprintf(stderr, "ERROR: " fmt, ##__VA_ARGS__);                   \
+        WARN("ERROR: " fmt, ##__VA_ARGS__);                                    \
         exit(1);                                                               \
     } while (0)
 
@@ -626,7 +628,7 @@ int main(int argc, char *argv[])
 #define SHOW_USAGE()                                                           \
     do                                                                         \
     {                                                                          \
-        (void)fprintf(stderr, USAGE_FMT, argv[0]);                             \
+        WARN(USAGE_FMT, argv[0]);                                              \
     } while (0)
     struct named_palettes
     {
@@ -655,15 +657,15 @@ int main(int argc, char *argv[])
     {                                                                          \
         for (size_t j = 0;                                                     \
              j < sizeof(named_palettes) / sizeof(named_palettes[0]); j++)      \
-            (void)fprintf(stdout, "%s\n", named_palettes[j].name);             \
+            SAY("%s", named_palettes[j].name);                                 \
     } while (0)
 #define SHOW_VALID_PALETTES()                                                  \
     do                                                                         \
     {                                                                          \
-        (void)fprintf(stderr, "Valid palettes:\n");                            \
+        WARN("Valid palettes:\n");                                             \
         for (size_t j = 0;                                                     \
              j < sizeof(named_palettes) / sizeof(named_palettes[0]); j++)      \
-            (void)fprintf(stderr, "- %s\n", named_palettes[j].name);           \
+            WARN("- %s\n", named_palettes[j].name);                            \
     } while (0)
 
     // We start with a "reset" style:
@@ -717,8 +719,7 @@ int main(int argc, char *argv[])
                 }
                 if (!palette)
                 {
-                    (void
-                    )fprintf(stderr, "Error: Unknown palette '%s'.\n", argv[i]);
+                    WARN("Error: Unknown palette '%s'.\n", argv[i]);
                     SHOW_VALID_PALETTES();
                     SHOW_USAGE();
                     exit(1);
@@ -726,8 +727,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                (void
-                )fprintf(stderr, "Error: Missing argument to '--palette'.\n");
+                WARN("Error: Missing argument to '--palette'.\n");
                 SHOW_VALID_PALETTES();
                 SHOW_USAGE();
                 exit(1);
@@ -770,8 +770,7 @@ int main(int argc, char *argv[])
                 long color = strtol(argv[i], &endptr, 10);
                 if (!endptr || *endptr != '\0')
                 {
-                    (void)fprintf(
-                        stderr,
+                    WARN(
                         "Error: Invalid color '%s' needs to be 0-15 or fg or "
                         "bg.\n",
                         argv[i]
@@ -793,8 +792,7 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    (void)fprintf(
-                        stderr,
+                    WARN(
                         "Error: Invalid color '%s' needs to be 0-15 or fg or "
                         "bg.\n",
                         argv[i]
@@ -805,9 +803,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                (void)fprintf(
-                    stderr, "Error: Missing argument to '--show-rgb-for'.\n"
-                );
+                WARN("Error: Missing argument to '--show-rgb-for'.\n");
                 SHOW_USAGE();
                 exit(1);
             }
@@ -834,9 +830,7 @@ int main(int argc, char *argv[])
         {
             if (!wrap_in_pre)
             {
-                (void)fprintf(
-                    stderr, "Error: Need to use --pre before --pre-add-style.\n"
-                );
+                WARN("Error: Need to use --pre before --pre-add-style.\n");
                 SHOW_USAGE();
                 exit(1);
             }
@@ -847,9 +841,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                (void)fprintf(
-                    stderr, "Error: Missing argument to '--pre-add-style'.\n"
-                );
+                WARN("Error: Missing argument to '--pre-add-style'.\n");
                 SHOW_USAGE();
                 exit(1);
             }
@@ -1020,8 +1012,7 @@ int main(int argc, char *argv[])
                     long color = strtol(argv[i], &endptr, 10);
                     if (!endptr || *endptr != '\0')
                     {
-                        (void)fprintf(
-                            stderr,
+                        WARN(
                             "Error: Invalid color '%s' needs to be 0-15 or fg "
                             "or bg.\n",
                             argv[i]
@@ -1036,8 +1027,7 @@ int main(int argc, char *argv[])
                 }
                 if (!which_rgb)
                 {
-                    (void)fprintf(
-                        stderr,
+                    WARN(
                         "Error: Invalid color '%s' needs to be 0-15 or fg or "
                         "bg.\n",
                         argv[i]
@@ -1054,8 +1044,7 @@ int main(int argc, char *argv[])
                         color++;
                     if (strlen(color) != 6)
                     {
-                        (void)fprintf(
-                            stderr,
+                        WARN(
                             "Error: Invalid color '%s' needs to be #RRGGBB.\n",
                             argv[i]
                         );
@@ -1066,8 +1055,7 @@ int main(int argc, char *argv[])
                     long lrgb = strtol(color, &endptr, 16);
                     if (!endptr || *endptr != '\0')
                     {
-                        (void)fprintf(
-                            stderr,
+                        WARN(
                             "Error: Invalid color '%s' needs to be #RRGGBB.\n",
                             argv[i]
                         );
@@ -1076,8 +1064,7 @@ int main(int argc, char *argv[])
                     }
                     if (lrgb < 0 || lrgb > 0xFFFFFF)
                     {
-                        (void)fprintf(
-                            stderr,
+                        WARN(
                             "Error: Invalid color '%s' needs to be #RRGGBB.\n",
                             argv[i]
                         );
@@ -1091,18 +1078,14 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    (void)fprintf(
-                        stderr, "Error: Missing argument 2 for '--rgb-for'.\n"
-                    );
+                    WARN("Error: Missing argument 2 for '--rgb-for'.\n");
                     SHOW_USAGE();
                     exit(1);
                 }
             }
             else
             {
-                (void)fprintf(
-                    stderr, "Error: Missing argument 1 for '--rgb-for'.\n"
-                );
+                WARN("Error: Missing argument 1 for '--rgb-for'.\n");
                 SHOW_USAGE();
                 exit(1);
             }
@@ -1110,7 +1093,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            (void)fprintf(stderr, "Error: Unknown argument '%s'.\n", argv[i]);
+            WARN("Error: Unknown argument '%s'.\n", argv[i]);
             SHOW_USAGE();
             exit(1);
         }
@@ -1118,9 +1101,7 @@ int main(int argc, char *argv[])
 
     if (ignore_sgr_errors && !just_strip)
     {
-        (void)fprintf(
-            stderr, "--ignore-sgr-errors is only available for --strip.\n"
-        );
+        WARN("--ignore-sgr-errors is only available for --strip.\n");
         SHOW_USAGE();
         exit(1);
     }
