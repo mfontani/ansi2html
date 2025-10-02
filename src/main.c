@@ -264,6 +264,11 @@ just_strip_it(bool ignore_sgr_errors)
                 {
                     state = STATE_TEXT;
                 }
+                else if (c == 'K')
+                {
+                    // Ignore "Erase in Line" sequence.
+                    state = STATE_TEXT;
+                }
                 else
                 {
                     if (ignore_sgr_errors)
@@ -518,6 +523,16 @@ static inline __attribute__((always_inline)) void ansi2html(
                         &style, palette, use_classes, use_compact
                     );
                     span_outputted = false;
+                }
+                else if (c == 'K')
+                {
+                    // Ignore "Erase in Line" sequence.
+                    state = STATE_TEXT;
+                    if (span && !span_outputted)
+                    {
+                        append_to_buffer(span);
+                        span_outputted = true;
+                    }
                 }
                 else
                 {
