@@ -44,7 +44,8 @@ jobs:
           printf '\e[0;31mred\e[0;1;31mbright red\e[0m' | ./ansi2html -b -p vga
           echo
       - name: run tests
-        timeout-minutes: 2
+        # Higher timeout mostly for OSX x86_64 which is slower for some reason
+        timeout-minutes: 3
         run: |
           make prove
   build-static:
