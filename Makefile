@@ -93,3 +93,7 @@ run-tests:
 .PHONY: prove
 prove:
 	@prove tests/*.sh
+
+.PHONY: prove-j2
+prove-j2:
+	@prove -j 2 tests/*.sh

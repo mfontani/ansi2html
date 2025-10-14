@@ -46,7 +46,7 @@ jobs:
       - name: run tests
         timeout-minutes: 2
         run: |
-          make prove
+          make prove-j2
   build-static:
     runs-on: ubuntu-latest
     container: alpine:latest
@@ -89,7 +89,7 @@ jobs:
       - name: run tests [with iTerm2 palettes]
         timeout-minutes: 1
         run: |
-          prove -v tests/*.sh
+          prove -v -j 2 tests/*.sh
       - name: static compilation [no iTerm2 palettes] with mingw32-w64
         timeout-minutes: 2
         run: |
@@ -154,7 +154,7 @@ jobs:
       - name: run tests
         timeout-minutes: 2
         run: |
-          make prove
+          make prove-j2
       - name: "Compress for ${{matrix.arch}} [with iTerm2 palettes]"
         timeout-minutes: 1
         run: |
