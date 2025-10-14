@@ -138,6 +138,8 @@ just_strip_it(bool ignore_sgr_errors)
         STATE_TEXT,
         STATE_GOT_ESC,
         STATE_GOT_ESC_BRACKET,
+        STATE_GOT_ESC_BRACKET_EQUALS,
+        STATE_GOT_ESC_BRACKET_QUESTION,
     } state = STATE_TEXT;
 
     char buffer[INPUT_BUFFER_SIZE];
@@ -269,6 +271,19 @@ just_strip_it(bool ignore_sgr_errors)
                     // Ignore "Erase in Line" sequence.
                     state = STATE_TEXT;
                 }
+                else if (c == 'J')
+                {
+                    // Ignore "Erase in Display" sequence.
+                    state = STATE_TEXT;
+                }
+                else if (c == '=')
+                {
+                    state = STATE_GOT_ESC_BRACKET_EQUALS;
+                }
+                else if (c == '?')
+                {
+                    state = STATE_GOT_ESC_BRACKET_QUESTION;
+                }
                 else
                 {
                     if (ignore_sgr_errors)
@@ -276,6 +291,42 @@ just_strip_it(bool ignore_sgr_errors)
                     else
                         ERROR(
                             "SGR sequence contains invalid character "
+                            "'%c' at %zu characters read / %zu in SGR sequence "
+                            "which begun at %zu characters read.\n",
+                            c, read, sgr_chars_len, begun_at
+                        );
+                }
+            }
+            else if (state == STATE_GOT_ESC_BRACKET_EQUALS)
+            {
+                // Read numbers until "h" or "l", ignore everything in between.
+                if (c == 'h' || c == 'l')
+                    state = STATE_TEXT;
+                else if (c < '0' || c > '9')
+                {
+                    if (ignore_sgr_errors)
+                        state = STATE_TEXT;
+                    else
+                        ERROR(
+                            "SGR ]= sequence contains invalid character "
+                            "'%c' at %zu characters read / %zu in SGR sequence "
+                            "which begun at %zu characters read.\n",
+                            c, read, sgr_chars_len, begun_at
+                        );
+                }
+            }
+            else if (state == STATE_GOT_ESC_BRACKET_QUESTION)
+            {
+                // Read numbers until "h" or "l", ignore everything in between.
+                if (c == 'h' || c == 'l')
+                    state = STATE_TEXT;
+                else if (c < '0' || c > '9')
+                {
+                    if (ignore_sgr_errors)
+                        state = STATE_TEXT;
+                    else
+                        ERROR(
+                            "SGR ]? sequence contains invalid character "
                             "'%c' at %zu characters read / %zu in SGR sequence "
                             "which begun at %zu characters read.\n",
                             c, read, sgr_chars_len, begun_at
@@ -328,6 +379,8 @@ static inline __attribute__((always_inline)) void ansi2html(
         STATE_TEXT,
         STATE_GOT_ESC,
         STATE_GOT_ESC_BRACKET,
+        STATE_GOT_ESC_BRACKET_EQUALS,
+        STATE_GOT_ESC_BRACKET_QUESTION,
     } state = STATE_TEXT;
 
     char buffer[INPUT_BUFFER_SIZE];
@@ -534,6 +587,24 @@ static inline __attribute__((always_inline)) void ansi2html(
                         span_outputted = true;
                     }
                 }
+                else if (c == 'J')
+                {
+                    // Ignore "Erase in Display" sequence.
+                    state = STATE_TEXT;
+                    if (span && !span_outputted)
+                    {
+                        append_to_buffer(span);
+                        span_outputted = true;
+                    }
+                }
+                else if (c == '=')
+                {
+                    state = STATE_GOT_ESC_BRACKET_EQUALS;
+                }
+                else if (c == '?')
+                {
+                    state = STATE_GOT_ESC_BRACKET_QUESTION;
+                }
                 else
                 {
                     // The character should be a digit, or semicolon.
@@ -587,6 +658,30 @@ static inline __attribute__((always_inline)) void ansi2html(
                             c, read, sgr_chars_len, begun_at
                         );
                 }
+                break;
+            case STATE_GOT_ESC_BRACKET_EQUALS:
+                // Read numbers until "h" or "l", ignore everything in between.
+                if (c == 'h' || c == 'l')
+                    state = STATE_TEXT;
+                else if (c < '0' || c > '9')
+                    ERROR(
+                        "SGR ]= sequence contains invalid character "
+                        "'%c' at %zu characters read / %zu in SGR sequence "
+                        "which begun at %zu characters read.\n",
+                        c, read, sgr_chars_len, begun_at
+                    );
+                break;
+            case STATE_GOT_ESC_BRACKET_QUESTION:
+                // Read numbers until "h" or "l", ignore everything in between.
+                if (c == 'h' || c == 'l')
+                    state = STATE_TEXT;
+                else if (c < '0' || c > '9')
+                    ERROR(
+                        "SGR ]? sequence contains invalid character "
+                        "'%c' at %zu characters read / %zu in SGR sequence "
+                        "which begun at %zu characters read.\n",
+                        c, read, sgr_chars_len, begun_at
+                    );
                 break;
             }
         }
